@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.png binary
+*.ico binary
+tests/fixtures/electron-v02/CURRENT -text
+tests/fixtures/electron-v02/*.log binary
+tests/fixtures/electron-v02/MANIFEST-* binary
+# Preserve upstream license formatting, including its original whitespace.
+THIRD_PARTY_LICENSES.txt -whitespace

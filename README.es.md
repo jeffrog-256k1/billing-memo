@@ -2,60 +2,52 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-**Cada herramienta. Un solo registro.** Un cuaderno local en el navegador para organizar gastos de nube, alojamiento, bases de datos, correo, API y suscripciones.
+**Todas tus herramientas. Un registro claro.** Gestiona los gastos de nube, alojamiento, bases de datos, correo, APIs y suscripciones de forma local.
 
-[Abrir Billing Memo](https://jeffrog-256k1.github.io/billing-memo/) · [MIT](LICENSE) · [Cambios](CHANGELOG.md)
+[Descargar Windows v0.3.0](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Abrir app web](https://jeffrog-256k1.github.io/billing-memo/) · [Ver ejemplos](https://jeffrog-256k1.github.io/billing-memo/?demo=1)
 
-![Circuito animado de gastos con importes ficticios](assets/cost-circuit.gif)
+![Registro vacío al iniciar](assets/empty.png)
 
-## Aplicación Windows · v0.2.0
+## Empieza vacío. Gestiona todo en una pantalla.
 
-[Descargar instalador o ZIP para Windows x64](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Guía de escritorio](docs/DESKTOP.md)
+1. El primer inicio abre un **registro vacío**. El escritorio no incluye modo demo ni suscripciones de ejemplo.
+2. Añade nombre, importe, moneda, ciclo y primera fecha de facturación. El enlace de facturación es opcional; proyecto, categoría y notas están en campos desplegables.
+3. **Mi registro** reúne edición de servicios, facturas mensuales, pagos y estimaciones pendientes. Cambia de mes sin salir de tus servicios.
+4. Registra el importe real al pagar. Usa **Herramientas del registro** para guardar o restaurar copias JSON.
 
-Web y escritorio comparten **Resumen, Servicios, Calendario e Informes**. Selecciona fechas inclusivas para ver el total, importes mensuales y promedio, con filtros de proyecto y categoría. **Pagos reales** usa la fecha de pago registrada; **Facturas previstas** usa el vencimiento y combina pagos con estimaciones pendientes. Exporta detalles y totales mensuales a CSV. Los tipos de cambio ausentes producen totales parciales. Cada consulta admite 120 meses naturales; el promedio incluye meses vacíos y parciales.
+![Datos ficticios seleccionados explícitamente](assets/overview.png)
 
-Para Windows 10/11 x64: instala el EXE o extrae todo el ZIP y ejecuta Billing Memo.exe. Funciona sin conexión. Web y escritorio guardan registros separados; usa JSON para transferirlos. Ambos paquetes guardan en %APPDATA%/Billing Memo; el ZIP no requiere instalación, pero no almacena los datos junto al ejecutable USB. La versión no está firmada y Windows puede mostrar una advertencia del editor o SmartScreen. Incluye sumas SHA-256.
+La web también empieza vacía. Los ejemplos solo aparecen al seleccionarlos en el menú o abrir el enlace de demostración. Los cambios de la demo son temporales y no sobrescriben tu registro; “Abrir mi registro” vuelve a tus datos. Los importes ficticios no son precios reales de proveedores.
 
-![Informe mensual y del período con datos ficticios](assets/period-report.png)
+## Una app Windows más pequeña
 
-## Funciones
+La versión 0.3 reemplaza Electron por **Tauri y el WebView2 del sistema**. La interfaz sigue siendo web y local, pero ya no incluye otra copia de Chromium/Node. Funciona sin conexión una vez instalado WebView2. Si falta o es demasiado antiguo, el instalador lo descarga por separado; esa descarga no forma parte del tamaño reducido del instalador.
 
-- Reúne nombres, enlaces de facturación, proyectos, categorías y notas. Los accesos rápidos rellenan nombres y enlaces, nunca precios supuestos.
-- Registra gastos mensuales, anuales, únicos y por uso. El uso es un **total mensual introducido manualmente**, no una medición automática de API.
-- Consulta previsión del mes, pagos registrados, estimaciones pendientes y equivalente mensual recurrente. Registra el importe definitivo al pagar.
-- Filtra por proyecto, categoría, búsqueda o día del calendario. Abre directamente el panel de facturación del servicio.
-- Presupuesto mensual, distribución por categoría y previsión de seis meses. Admite USD, KRW, EUR, JPY, CNY y GBP, con conversión manual opcional.
-- Exporta una copia JSON, un CSV mensual o un calendario de pendientes con aviso tres días antes. Restaura JSON validado tras confirmar el reemplazo.
-- Interfaz completa en inglés, coreano, chino simplificado, japonés y español; adaptación móvil, pausa de animación y movimiento reducido.
+Windows 10/11 x64: utiliza el instalador o extrae el ZIP y ejecuta **Billing Memo.exe**. El ZIP también requiere WebView2. Ambos guardan en **%APPDATA%/app.leejungjae.billingmemo/ledger.json**; el almacenamiento no queda dentro del USB. La versión no está firmada y Windows puede mostrar un aviso de editor/SmartScreen. Incluye SHA256SUMS.txt y no tiene actualizador automático.
 
-![Interfaz de escritorio de Billing Memo](assets/overview.png)
+Para actualizar desde 0.2, cierra la app anterior y exporta una copia JSON. El primer inicio intenta copiar el registro guardado del perfil predeterminado anterior, sin modificar el original ni importar la demo. Si falla, muestra un aviso y permite restaurar JSON. Las copias 0.1/0.2 siguen siendo compatibles. [Guía de escritorio](docs/DESKTOP.md)
 
-## Tu propio registro
+## Tres páginas
 
-1. Explora la demo ficticia y pulsa **Abrir mi espacio**. Los cambios de la demo son temporales y no sobrescriben tu registro.
-2. Añade un servicio, importe, moneda y **primera fecha de pago**, que fija la repetición. Puedes definir una última fecha o pausar estimaciones pendientes.
-3. Selecciona un mes y pulsa **Registrar pago**. El importe real, incluso cero, sustituye la estimación de ese servicio para ese mes de facturación.
-4. Exporta copias regularmente. Restaurar reemplaza el espacio actual; guarda antes una copia si quieres conservarlo.
+- **Mi registro:** servicios, enlaces, totales del mes, estado de pagos, búsqueda y filtros por proyecto/categoría/estado, presupuesto y previsión desplegable de seis meses. Los totales superiores siempre incluyen todos los servicios, aunque filtres la lista.
+- **Calendario:** vencimientos, filtro por día, CSV mensual e ICS de facturas pendientes.
+- **Informes:** fechas inicial/final inclusivas, total, importes mensuales, promedio, filtros y CSV de detalles o meses. Usa fecha real de pago o vencimiento previsto. Hasta 120 meses naturales; el promedio incluye meses vacíos y parciales.
 
-## Reglas de cálculo
+## Cálculos y almacenamiento
 
-Los importes se almacenan como enteros en unidades mínimas (KRW/JPY sin decimales; el resto, dos). Un vencimiento del 31 de enero pasa al último día de febrero y vuelve al 31 de marzo. Un plan anual del 29 de febrero pasa al 28 en años normales. La cuota anual se contabiliza **completa en su mes de vencimiento**; solo el indicador mensual equivalente la divide entre 12. Los gastos únicos no forman parte del equivalente recurrente.
+Admite pagos mensuales, anuales, únicos y por uso. El uso es un **total mensual introducido manualmente**, no medición de APIs. El día 31 pasa al último día de los meses cortos y vuelve al 31 después. La cuota anual se cuenta completa en el mes de cobro; solo su equivalente mensual recurrente se divide entre 12.
 
-Previsión = importes reales registrados + estimaciones pendientes. Los pagos pertenecen al mes de facturación previsto; la fecha real de pago se guarda aparte. No es contabilidad de caja. Las instantáneas pagadas se conservan al editar, pausar o eliminar servicios. Editar un servicio cambia sus estimaciones pendientes, incluso las de meses anteriores. Cada servicio tiene una factura mensual; crea entradas únicas separadas para transacciones adicionales.
+Factura mensual = pagos registrados + estimaciones pendientes. Una factura de enero pagada en febrero cuenta en enero en el registro y en febrero en informes por pago real. Los pagos sobreviven a edición, pausa y eliminación de servicios; las ediciones afectan estimaciones pendientes, incluidas las pasadas. Cada servicio tiene una factura por mes; registra cargos extra como servicios únicos separados.
 
-Las monedas distintas mantienen totales separados. Si falta un tipo de cambio, se muestra **total parcial**, nunca una conversión implícita 1:1. Introduce `1 unidad original = N unidades de visualización`; cada partida se redondea a la unidad mínima de destino. Cambiar la moneda de visualización reinicia tipos y presupuesto. No hay tipos en tiempo real ni predicción de consumo, impuestos o cambios de precios: introduce el importe completo que quieras controlar.
+USD, KRW, EUR, JPY, CNY y GBP se guardan en unidades monetarias menores enteras; KRW/JPY no tienen decimales. Las tasas son manuales. Si faltan, se muestran totales por moneda y una conversión parcial. Cambiar moneda de visualización reinicia tasas y presupuesto. No hay tasas automáticas ni históricas.
 
-## Almacenamiento y límites
+El escritorio guarda JSON local; la web usa localStorage del navegador. No hay cuenta, backend ni sincronización: transfiere por JSON. Restaurar reemplaza el registro de destino tras confirmación. Borrar los datos del navegador elimina el registro web. Los errores de guardado y datos dañados se muestran sin reiniciar silenciosamente.
 
-Sin inicio de sesión, conexión a facturación, seguimiento ni backend. La aplicación no envía solicitudes automáticas a terceros. Tu espacio se guarda en localStorage, sin cifrar y compartido con los scripts del mismo origen. Borrar los datos del sitio elimina el registro; el modo privado es temporal. Aloja la app en un origen dedicado si necesitas separación. No guardes contraseñas, claves API ni números de tarjeta. Los archivos exportados contienen tus entradas: revísalos antes de compartir.
+Límites: 500 servicios, 5.000 pagos, 2 MiB por registro/importación, fechas 2000–2199, nombres de 80 caracteres y notas de 2.000. Importes no negativos de hasta 100.000 millones de unidades menores por entrada. Solo enlaces HTTPS sin credenciales. Los datos no están cifrados: no guardes contraseñas, claves API ni tarjetas. No cobra, concilia facturas ni envía avisos en segundo plano; los recordatorios ICS dependen de tu calendario.
 
-Límites: 500 servicios, 5.000 pagos, 2 MiB para el registro serializado o JSON importado, nombres de 80 caracteres, notas de 2.000 y fechas de 2000 a 2199. Importes no negativos, con un máximo de 100.000 millones de unidades mínimas por partida. Enlaces HTTPS sin credenciales. Detecta conflictos entre pestañas y ofrece exportación o recuperación ante errores de guardado o datos dañados.
+## Development
 
-No cobra tarjetas, sincroniza dispositivos, concilia facturas ni envía avisos en segundo plano. Tu aplicación de calendario gestiona el aviso de tres días. Usa un calendario separado para administrar cambios y eliminaciones. Eliminar un servicio conserva pagos y permite deshacer inmediatamente. Los importes del ejemplo son ficticios, no precios actuales de proveedores.
-
-## Ejecución local
-
-Node.js 22.12+ y npm:
+Node.js 22.12+ and npm:
 
 ```sh
 git clone https://github.com/jeffrog-256k1/billing-memo.git
@@ -63,8 +55,6 @@ cd billing-memo
 npm ci
 npm run dev
 ```
-
-Abre la URL local mostrada. `dev` compila y sirve la app estática con la CSP de producción; vuelve a ejecutarlo tras modificar el código. No requiere secretos ni archivo de entorno.
 
 ```sh
 npm test
@@ -75,8 +65,8 @@ npm run test:reports
 npm run format:check
 ```
 
-Después de compilar y probar el navegador, `npm run render:assets` regenera las imágenes del README. Las pruebas usan datos ficticios aislados. La versión web no tiene dependencias de paquetes en ejecución; el escritorio incluye Electron. Vite, TypeScript, Playwright y gifenc son herramientas de desarrollo.
+The local dev command builds and previews the production CSP; rerun after source changes. Windows builds also require stable Rust, MSVC C++ Build Tools and WebView2. See [desktop build instructions](docs/DESKTOP.md). No provider keys are needed.
 
-[Contribuir](CONTRIBUTING.md) · [Seguridad](SECURITY.md) · [Dependencias](THIRD_PARTY_NOTICES.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Dependencies](THIRD_PARTY_NOTICES.md)
 
-Creado por [jeffrog-256k1](https://github.com/jeffrog-256k1) · [leejungjae.app](https://leejungjae.app)
+Built by [jeffrog-256k1](https://github.com/jeffrog-256k1) · [leejungjae.app](https://leejungjae.app)

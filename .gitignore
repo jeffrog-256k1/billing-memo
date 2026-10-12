@@ -7,3 +7,6 @@ test-results/
 *.log
 .DS_Store
 release/
+src-tauri/target/
+src-tauri/gen/
+!tests/fixtures/electron-v02/*.log

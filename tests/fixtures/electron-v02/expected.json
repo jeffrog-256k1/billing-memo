@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "services": [
+    {
+      "id": "legacy-qa",
+      "name": "Migration QA 테스트",
+      "category": "cloud",
+      "project": "Fictional QA",
+      "url": "https://example.com/billing",
+      "notes": "Synthetic migration fixture; no real account data.",
+      "currency": "USD",
+      "amount": 1250,
+      "kind": "monthly",
+      "anchor": "2024-01-15",
+      "end": "",
+      "paused": false
+    }
+  ],
+  "payments": [
+    {
+      "id": "legacy-qa",
+      "name": "Migration QA 테스트",
+      "category": "cloud",
+      "project": "Fictional QA",
+      "url": "https://example.com/billing",
+      "notes": "Synthetic migration fixture; no real account data.",
+      "currency": "USD",
+      "amount": 1300,
+      "kind": "monthly",
+      "key": "legacy-qa@2024-01-15",
+      "date": "2024-01-15",
+      "paidAt": "2024-01-16"
+    }
+  ],
+  "base": "USD",
+  "rates": {
+    "USD": 1
+  },
+  "budget": 0
+}

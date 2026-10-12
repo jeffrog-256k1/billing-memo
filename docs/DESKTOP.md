@@ -1,37 +1,44 @@
-# Windows desktop and period reports
+# Windows desktop
 
-## Download
+## Download and run
 
-[Latest release](https://github.com/jeffrog-256k1/billing-memo/releases/latest) contains:
+[Latest release](https://github.com/jeffrog-256k1/billing-memo/releases/latest):
 
-- `Billing-Memo-0.2.0-windows-x64-setup.exe`: per-user Windows installer, with selectable directory and optional desktop shortcut. Administrator elevation is not requested.
-- `Billing-Memo-0.2.0-windows-x64.zip`: extract the **entire archive**, then run `Billing Memo.exe`. Keep its supporting files together. No installation is required.
-- `SHA256SUMS.txt`: hashes for checking downloaded files with `Get-FileHash -Algorithm SHA256` in PowerShell.
+- Billing-Memo-0.3.0-windows-x64-setup.exe: per-user installer.
+- Billing-Memo-0.3.0-windows-x64.zip: extract, then run Billing Memo.exe.
+- SHA256SUMS.txt: check with Get-FileHash -Algorithm SHA256 in PowerShell.
 
-This release targets Windows 10/11 x64. macOS, Linux and native Windows ARM64 packages are not included. The installer is unsigned; Windows may display an unknown-publisher or SmartScreen warning. A checksum verifies file equality, not publisher identity. Obtain files from this repository's release page. There is no background updater; download future releases from the same page.
+Windows 10/11 x64 and Microsoft Edge WebView2 Runtime are required. Version 0.3 uses Tauri 2 and the installed WebView2 engine. The UI is still a local web interface; the package no longer bundles Chromium/Node. If WebView2 is missing or below the configured minimum, the installer downloads it separately. That runtime download and its system footprint are not included in the app package size. The ZIP cannot install a missing runtime; use the installer instead. See [Tauri's Windows installer documentation](https://v2.tauri.app/distribute/windows-installer/).
 
-The desktop app starts offline and bundles its own runtime. It uses the same interface, calculations and five languages as the web version. Service links open in the default browser after confirmation.
+The application works offline after the runtime is available. The installer is unsigned; Windows may show an unknown-publisher/SmartScreen notice. Checksums establish file equality, not publisher identity. No auto-updater, macOS/Linux build or native ARM64 package is included.
 
-## Your data
+## Clean start and saved data
 
-Desktop data lives under `%APPDATA%\Billing Memo`, including the app's localStorage. Both installer and ZIP use this location. The ZIP is installation-free, **not** a self-contained USB data folder. App updates and normal uninstall preserve the profile. Removing the profile removes the ledger. Export JSON before upgrades or moving computers.
+Fresh desktop installations start with an empty ledger. The desktop app contains no demo switch. The web app also starts empty; only the explicit demo link or menu loads fictional examples in memory.
 
-Web and desktop storage are separate. **Backup JSON** in the source app, then **Restore backup** in the destination. Restore replaces that destination ledger after confirmation. Version 0.1 JSON backups work without conversion. There is no automatic sync, account or server backup. Local data and exported files are not encrypted; do not enter credentials, API keys or payment-card details.
+Current desktop storage: **%APPDATA%\app.leejungjae.billingmemo\ledger.json**. Language preferences and WebView2 cache live in the same profile's webview subdirectory. Installer and ZIP share the same ledger. ZIP storage is not self-contained on removable media.
 
-## Pages and reports
+Each save writes and syncs a temporary file, then atomically replaces ledger.json. The expected previous content is checked before replacing it, so stale saves fail. Invalid stored data is reported and preserved; a raw export is available for readable but malformed JSON. The profile and exports are unencrypted. Export JSON regularly; there is no cloud backup.
 
-- **Overview:** selected month's expected costs, recorded amounts, remaining estimates and six-month outlook.
-- **Services:** all editable services, including paused plans; project/category/search filters.
-- **Calendar:** monthly due dates, payment records, budget/category breakdown and CSV/ICS exports.
-- **Reports:** inclusive start/end dates, actual or scheduled date basis, project/category filters, total, monthly average, month-by-month chart and detail records.
+## Upgrading from Electron 0.2
 
-**Actual payments** uses each recorded payment's actual payment date. For example, a January 31 invoice paid on February 1 counts in February. Unrecorded estimates do not count as actual spending. **Scheduled bills** uses due dates and combines recorded amounts with unpaid estimates. Service edits affect unpaid forecasts, including past months; paid snapshots remain unchanged.
+1. Close the old app and keep a JSON backup from it.
+2. Install or run 0.3. On first launch, when no new ledger.json exists, it looks for **%APPDATA%\Billing Memo\Local Storage\leveldb**.
+3. It reads a bounded, disposable copy of that database and extracts only the saved Billing Memo ledger key. After full ledger validation, it saves native JSON. The original Electron profile remains unchanged.
+4. In-memory demo examples have no saved ledger key and are not imported. If the old profile cannot be read, an on-screen message directs you to restore JSON. Custom old data directories require manual JSON transfer.
+5. Verify your services and payments before removing an old installation. The migration is one-time; later edits in 0.2 do not sync to 0.3.
 
-Ranges may cover up to 120 calendar months. The average divides the total by all calendar months touched by the range, including empty and partial months; it is not a prorated daily average. Details paginate at 50 rows; exports include all matching records. Period CSV includes both due date and payment date. Monthly CSV has one row per month, original-currency columns, base currency, converted total and a conversion-completeness flag. Missing manual exchange rates produce clearly marked partial totals. Rates are the workspace's current manual rates, not historical market rates.
+Existing 0.1/0.2 JSON backups remain compatible. Web and desktop storage are separate. Use **Ledger tools → Backup JSON** in the source and **Restore backup** in the destination. Restoring replaces the destination after confirmation, with a backup button offered first.
+
+## Daily workflow
+
+**My ledger** is the default: add/edit services, select a month, view total bills, paid amounts and unpaid estimates, and record actual payment amounts without switching pages. Project/category/notes and end/pause fields are optional. Filters change the service list, not the monthly totals. Settings provide currency, manual rates and budget; additional forecasts are collapsed.
+
+**Calendar** adds due dates, day filtering, monthly CSV and unpaid ICS exports. **Reports** supports inclusive start/end dates, actual payment dates or scheduled due dates, project/category filters, total, monthly amounts/average and CSV exports. Ranges cover at most 120 calendar months; the average includes empty and partial months. Details paginate at 50 rows, but CSV includes all matching records. Missing exchange rates mark totals partial. See the README for calculation rules.
 
 ## Build and verify
 
-On Windows with Node.js 22.12+:
+Install Node.js 22.12+, current stable Rust, MSVC C++ Build Tools and WebView2. On Windows:
 
 ```sh
 npm ci
@@ -40,11 +47,15 @@ npm run build
 npx playwright install chromium
 npm run test:browser
 npm run test:reports
-npm run test:desktop
+npm run build:desktop
+npm run test:rust
 npm run desktop:build
 npm run test:packaged
+npm run desktop:package
 ```
 
-Outputs go to ignored `release/`. Tests use isolated fictional profiles in ignored `test-results/`. Packaged tests start a temporary local debugging port explicitly for that test process; normal launches open no listening port. Keep the test results private because a manually chosen profile may contain local data. `npm run desktop` runs the desktop app from source. `npm run icon` regenerates the original app icon with Playwright. Neither build nor app requires provider keys.
+Tauri output is in ignored src-tauri/target/release; release-ready EXE, ZIP and hashes go to ignored release/. The native test launches the actual compiled EXE with its own --data-dir and a temporary CDP port only in that child process. Normal launches open no debugging port. Tests use fictional profiles and a synthetic Electron fixture; never point tests at personal data. The installer is built, while runtime tests exercise its compiled application rather than installing over a user's existing installation.
 
-The app uses a secure standard custom protocol to load only bundled assets, renderer sandboxing and context isolation. Node integration, webviews, renderer network requests, permission grants and remote navigation are disabled. Electron fuses disable RunAsNode, NODE_OPTIONS and Node inspector switches, and enforce ASAR loading/integrity validation. There is no preload API or renderer IPC bridge. See [Electron security guidance](https://www.electronjs.org/docs/latest/tutorial/security), [custom protocols](https://www.electronjs.org/docs/latest/api/protocol) and [fuses](https://www.electronjs.org/docs/latest/tutorial/fuses).
+The native bridge exposes only ledger load/save, validated HTTPS link opening and native file-dialog import/export. There is no general filesystem or shell API. Popups, permission requests, direct webview downloads and remote navigation are denied. Provider URLs open in the system browser on user action. CSP allows packaged resources and local Tauri IPC only. Third-party notices accompany both packages.
+
+npm run desktop runs a development build. npm run icon regenerates the original icon; npm run render:assets refreshes documentation screenshots. scripts/generate-notices.mjs collects dependency notices from Cargo's locked packages, including exact upstream source links.

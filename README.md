@@ -2,58 +2,58 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-**Every tool. One clear ledger.** A browser-local notebook for the cost of your developer stack: cloud, hosting, databases, email, APIs and subscriptions.
+**Every tool. One clear ledger.** A small, local expense notebook for cloud services, hosting, databases, email, APIs and subscriptions.
 
-[Open Billing Memo](https://jeffrog-256k1.github.io/billing-memo/) · [MIT](LICENSE) · [Changelog](CHANGELOG.md)
+[Download Windows v0.3.0](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Open web app](https://jeffrog-256k1.github.io/billing-memo/) · [Try sample data](https://jeffrog-256k1.github.io/billing-memo/?demo=1) · [MIT](LICENSE)
 
-![Animated cost circuit with fictional amounts](assets/cost-circuit.gif)
+![Your new, empty ledger](assets/empty.png)
 
-## Windows app · v0.2.0
+## Start clean. Manage everything on one screen.
 
-[Download the Windows x64 installer or ZIP](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Desktop guide](docs/DESKTOP.md)
+1. First launch opens an **empty ledger**, with no sample subscriptions or demo mode in the desktop app.
+2. Add a name, amount, currency, billing cycle and first billing date. Add a billing link if useful; project, category and notes are optional.
+3. **My ledger** combines service editing, monthly bills, paid amounts and remaining estimates. Change the month without leaving your services.
+4. Record the actual amount when paid. Export JSON from **Ledger tools** for backups or transfer between web and desktop.
 
-Overview, Services, Calendar and Reports are now separate pages in both apps. **Reports** accepts inclusive start/end dates, shows the period total, monthly amounts and average, and filters by project or category. Choose **Actual payments** for recorded spending by payment date, or **Scheduled bills** for paid snapshots plus unpaid forecasts by due date. Export all matching details and monthly totals as CSV. Missing rates produce partial totals. Each query supports 120 calendar months; averages include empty and partial months.
+![Ledger with explicitly selected fictional demo data](assets/overview.png)
 
-Windows 10/11 x64: install the EXE, or extract the entire ZIP and run Billing Memo.exe. The app runs offline. Web and desktop ledgers are separate; transfer them with JSON backup/restore. Both desktop packages save under %APPDATA%/Billing Memo. The ZIP is installation-free, not USB-contained storage. This release is unsigned; Windows may display an unknown-publisher or SmartScreen warning. SHA-256 checksums are included.
+The web app also starts empty. Sample data is available only through **Ledger tools → View demo** or the sample-data link above. Demo edits are temporary and never overwrite your saved ledger; **Open my ledger** returns to your own entries. All sample amounts are invented, not provider prices.
 
-![Period totals with fictional data](assets/period-report.png)
+## Smaller Windows app
 
-## What you can do
+Version 0.3 replaces Electron with **Tauri + the system WebView2 runtime**. It still renders a local web interface, but no longer ships another Chromium/Node runtime. The app works offline after WebView2 is installed. The installer downloads WebView2 only if it is missing or too old; that separate download is not included in the small installer size.
 
-- Keep service names, billing links, project labels, categories and memos together. Provider shortcuts fill names and links, never assumed prices.
-- Track monthly, yearly, one-time and usage-based costs. Usage is a manually entered **monthly total**, not an API meter.
-- See the selected month's forecast, recorded payments, remaining estimates and recurring monthly equivalent. Record the final amount when you pay.
-- Filter by project, category, search or calendar day. Open any service's billing dashboard directly.
-- Set a budget, see category distribution and a six-month outlook. Use USD, KRW, EUR, JPY, CNY or GBP, with optional manual conversion rates.
-- Export a JSON backup, a monthly CSV or an unpaid-bills calendar with a three-day reminder. Restore validated JSON after a replacement confirmation.
-- Use the complete interface in English, Korean, Simplified Chinese, Japanese or Spanish, on desktop or mobile. Pause circuit motion or honor reduced-motion preferences.
+Windows 10/11 x64: use the installer, or extract the ZIP and run **Billing Memo.exe**. The ZIP also requires WebView2. Both save to **%APPDATA%/app.leejungjae.billingmemo/ledger.json**; ZIP storage is not USB-contained. The release is unsigned; Windows may show an unknown-publisher/SmartScreen notice. Check SHA256SUMS.txt for file integrity. There is no automatic updater.
 
-![Billing Memo desktop interface](assets/overview.png)
+**Upgrading from 0.2:** close the old app and export a JSON backup first. On first launch, the new app tries to copy the saved ledger from the old default profile. The original Electron files stay unchanged; sample/demo data is not imported. If migration cannot read the old profile, a warning offers JSON restore. Existing 0.1/0.2 JSON backups remain compatible. [Desktop guide](docs/DESKTOP.md)
 
-## Start with your own ledger
+## Three focused pages
 
-1. Explore the fictional demo, then choose **Use my workspace**. Demo edits are temporary and do not overwrite your ledger.
-2. Add a service, its amount/currency and **first billing date**. That date anchors recurrence. Add an optional last billing date or pause unpaid estimates.
-3. Select a month. **Record payment** replaces that service's estimate for that billing month with the actual amount, including zero.
-4. Export backups regularly. Restore replaces the current workspace, so download your old backup first if needed.
+- **My ledger:** add/edit services, billing links, monthly totals, payment status, search, project/category/status filters, optional budget and collapsed six-month outlook. Monthly totals always include all services, regardless of list filters.
+- **Calendar:** due dates, day filtering, payments, monthly CSV and unpaid-bill ICS reminders.
+- **Reports:** inclusive start/end dates, period total, monthly amounts and average. Choose actual payment dates or scheduled due dates; filter by project/category and export details or monthly totals as CSV. Up to 120 calendar months, with empty and partial months included in the average.
 
-## Calculation rules
+![Period report with fictional entries](assets/period-report.png)
 
-Amounts are stored as integer minor units (KRW/JPY: zero decimals, others: two). A date such as January 31 becomes February's last day, then returns to March 31. Leap-day annual plans use February 28 in ordinary years. Annual charges count **in full in their billing month**; only the separate monthly equivalent divides them by 12. One-time charges do not enter the recurring equivalent.
+Full interface and documentation: English, Korean, Simplified Chinese, Japanese and Spanish.
 
-Forecast = recorded actual amounts + unpaid estimates. Payments belong to their scheduled billing month; their actual payment date is stored separately. Overview and Calendar are planning views; Reports can instead group payments by actual payment date. Paid snapshots survive service edits, pauses and removal. Editing a service changes its unpaid estimates, including earlier months. Each service has one invoice per month; add separate one-time entries for individual extra transactions.
+## How totals work
 
-Different currencies remain separately totaled. A missing conversion rate is marked as a **partial total**, never silently treated as 1:1. Enter `1 source unit = N display units`; converted estimates are rounded per item to the display currency's minor unit. Changing display currency resets rates and budget. Rates are manual and have no automatic refresh. Future usage, taxes and provider price changes are not predicted; enter the full amounts you want to track.
+Monthly, annual, usage-based and one-time entries are supported. Usage is a **manually entered monthly total**, not automatic API metering. Recurrence starts at the first billing date; January 31 becomes the last day of February, then returns to March 31. Annual fees count in full in their due month; only the separate recurring monthly equivalent divides them by 12. One-time items do not enter that equivalent.
 
-## Storage and limits
+Monthly bills = recorded payments + unpaid estimates, grouped by billing month. **Reports → Actual payments** instead groups by payment date. A January 31 bill paid on February 1 therefore belongs to January in My ledger and February in actual-payment reports. Payment snapshots survive service edits, pauses and deletion. Service edits affect all unpaid estimates, including past months. One invoice per service per month; use separate one-time services for extra transactions.
 
-No login, billing API integration, tracking or backend. The app makes no automatic third-party requests. Your own workspace is saved to this browser's localStorage; it is not encrypted and is shared with scripts on the same origin. Browser/site data deletion removes it, and private browsing is temporary. Self-host on a dedicated origin for separation. Do not store passwords, API keys or card details. Exports contain your entries: review them before sharing.
+Amounts use integer minor units. USD, KRW, EUR, JPY, CNY and GBP are supported; KRW/JPY have no decimal places. Currencies stay separate until you enter manual rates. Missing rates mark converted totals as partial. Conversion rounds per item; changing display currency resets rates and budget. Rates are not automatically updated or historical exchange rates.
 
-Limits: 500 services, 5,000 payment snapshots, 2 MiB serialized workspace/JSON import, names 80 characters, memos 2,000 characters, dates 2000–2199. Amounts must be nonnegative and at most 100 billion minor units per entry. Links must be HTTPS without embedded credentials. Multi-tab conflict detection prevents overwriting newer saves. Failed saves and unreadable stored data are reported, with export/recovery paths.
+## Storage and boundaries
 
-The app does not charge cards, sync devices, reconcile invoices or send background notifications. The exported calendar delegates its three-day reminders to your calendar app. Keep exported events in a dedicated calendar to manage updates or removals. Deleting a service keeps paid snapshots; removal can be undone immediately. Sample numbers are fictional, not current provider pricing.
+No login, backend, billing API integration, automatic tracking or device sync. Desktop stores native JSON atomically with conflict detection. Web stores data in this browser's localStorage; browser/site-data deletion removes it. Web and desktop storage are separate: transfer with JSON backup/restore. Restore replaces the destination after confirmation.
 
-## Run locally
+Data and exports are not encrypted. Do not store passwords, API keys or card details. The web app shares its origin with other pages hosted on that origin; self-host on a dedicated origin for separation. Unreadable data and failed saves are shown rather than silently reset.
+
+Limits: 500 services, 5,000 payment snapshots, 2 MiB workspace/import, dates 2000–2199, names 80 characters and notes 2,000. Amounts are nonnegative, up to 100 billion minor units per entry. Links must be HTTPS without credentials. The app does not charge cards, reconcile invoices or send background reminders. ICS reminders run in your calendar app.
+
+## Development
 
 Node.js 22.12+ and npm:
 
@@ -64,8 +64,6 @@ npm ci
 npm run dev
 ```
 
-Open the local URL printed by Vite. `dev` builds and previews the static app with the production Content Security Policy; rerun after source changes. No secrets or environment file required.
-
 ```sh
 npm test
 npm run build
@@ -75,7 +73,7 @@ npm run test:reports
 npm run format:check
 ```
 
-`npm run render:assets` regenerates README media after building and browser tests. Browser tests use isolated fictional data. The published web app has no runtime package dependencies; the desktop edition bundles Electron; Vite/TypeScript, Playwright and gifenc are development tools.
+The local dev command builds and previews the production CSP; rerun after source changes. Windows builds also require stable Rust, MSVC C++ Build Tools and WebView2. See [desktop build instructions](docs/DESKTOP.md). No provider keys are needed.
 
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Dependencies](THIRD_PARTY_NOTICES.md)
 

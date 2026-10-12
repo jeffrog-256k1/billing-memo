@@ -1,23 +1,21 @@
 # Security
 
-Use [GitHub private vulnerability reporting](https://github.com/jeffrog-256k1/billing-memo/security/advisories/new) with fictional reproduction data. Do not post real spending records, billing documents or credentials in public issues. The 0.2 release line is supported on a best-effort basis.
+Report a reproducible issue privately through the repository's GitHub security advisory flow. Use fictional data; never publish real bills, backups or credentials in an issue.
 
-The app operates on manually entered data. It does not connect to providers, read accounts, fetch billing URLs, execute payments, or transmit ledger data. Provider links open only after a user action, with `noopener noreferrer`. HTTPS links containing embedded credentials are rejected. Text is HTML-escaped, imported structures are validated, and spreadsheet formula prefixes are neutralized in CSV output. Dates, counts, amounts and input sizes are bounded.
+## Data and web boundary
 
-The static build uses a meta Content Security Policy with `default-src 'none'`, same-origin scripts/styles/images, `connect-src 'none'`, and no inline scripts or inline style blocks. GitHub Pages does not let this app configure all response headers; a meta CSP is not equivalent to an edge header policy and cannot supply `frame-ancestors`. On a dedicated host, set suitable response headers as well. The app does not claim an Observatory score.
+No provider credentials, accounts, analytics, backend or automatic billing integrations. Web data uses localStorage; other scripts on the same origin share its storage. Host on a dedicated origin for isolation. Desktop data is local JSON. Neither data nor exports are encrypted; do not store secrets or card information. Back up regularly.
 
-localStorage is not encrypted and is scoped to an origin, not a URL path. Other scripts on the same origin may access it. Use a dedicated origin for stronger separation; do not put secrets in notes or URLs. Clearing browser data removes saved entries. JSON, CSV and ICS exports contain user content. There is no server backup, authentication or multi-device synchronization. Budget/conversion numbers are user-entered planning estimates, not provider invoices.
-
-Writes compare the stored payload before overwriting it to detect another tab's changes. This is best-effort conflict protection, not an atomic database transaction across tabs. Unreadable stored data is preserved until an explicit valid restore. A quota/permission failure keeps the current in-memory view exportable and displays a warning. Supported imports and serialized data are at most 2 MiB; 500 services and 5,000 payment snapshots are allowed within that size.
-
-Browser tests run with isolated fictional data, including invalid JSON, unsafe URL schemes, HTML-like strings, storage failure and concurrent-tab cases. They do not inspect user browser profiles or personal billing data.
+Imports are limited to 2 MiB, strictly validated and confirmed before replacement. Text is escaped before rendering, URLs are restricted to HTTPS without credentials, and spreadsheet-formula prefixes are neutralized in CSV exports. Stored amounts and dates are validated. Web writes detect stale tabs; desktop saves compare prior content and use atomic replacement. Unreadable data is preserved and reported.
 
 ## Desktop boundary
 
-The Windows edition bundles Electron, not a web server. Its secure custom protocol serves only allowlisted packaged assets. The renderer is sandboxed with context isolation and no Node integration, preload bridge, webviews or permission grants. Remote navigation and automatic renderer network requests are denied. HTTPS links require a native confirmation before opening in the operating system browser. ASAR integrity and loading fuses are enabled; RunAsNode, NODE_OPTIONS and Node inspector switches are disabled in distributed executables. See [desktop storage, build and download details](docs/DESKTOP.md).
+Tauri 2 uses the system WebView2 engine to render bundled HTML/CSS/JS. No Node runtime, local HTTP server or general-purpose filesystem/shell bridge is included. Native commands are limited to ledger persistence, validated link opening and file-dialog import/export. No plugin capabilities are granted to the renderer. Remote navigation, popups, direct downloads and new permission requests are denied. Links deliberately opened by the user go to the default browser.
 
-The local profile and exports are not encrypted, and this release is unsigned. No automatic update service is present. Install updates from the official releases page. Backups from 0.1 remain compatible.
+CSP denies unspecified resource types and allows only packaged assets and local IPC. Tests explicitly start a debugging endpoint in their own isolated child process; normal launches do not. The legacy Electron migration operates on a bounded disposable database copy and imports only a validated saved ledger, leaving original files untouched.
 
-## Build dependency audit (2026-10-12)
+The build is unsigned and has no automatic updater. Keep Windows/WebView2 current and download app updates from this repository. JSON backups remain compatible. See [desktop guide](docs/DESKTOP.md).
 
-The packaged app contains no third-party npm runtime dependencies; Electron and its bundled Chromium/Node runtime remain security-sensitive and must be updated. The Windows build toolchain currently reports eight moderate audit entries deriving from one transitive sprintf-js denial-of-service advisory, [GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c), through electron-builder's download/proxy logger. No patched sprintf-js release is available in the registry at this audit. These build-only packages are excluded from the application ASAR. Builds use trusted configuration; ledger text is not passed to this logger. Do not treat this as a zero-vulnerability dependency audit. Recheck when updating packaging tools; automatic forced downgrades are not used.
+## Dependencies
+
+Electron and its packaging dependencies were removed in 0.3. package-lock.json and src-tauri/Cargo.lock pin the toolchain/application dependencies. npm audit reports no advisories at the 0.3 release check; this covers npm packages, not a proof that the Rust or system runtime is vulnerability-free. Review [dependency notices](THIRD_PARTY_NOTICES.md) when updating packages.

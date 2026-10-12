@@ -33,12 +33,16 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npm run build
-      - run: npm run test:desktop
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm run build:desktop
+      - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
+      - run: npm run test:rust
       - run: npm run desktop:build
-        env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       - run: npm run test:packaged
+      - run: npm run desktop:package
       - uses: actions/upload-artifact@v4
         if: always()
         with:

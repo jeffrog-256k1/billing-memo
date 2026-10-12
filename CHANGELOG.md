@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Fresh desktop and web workspaces start empty; web sample mode is explicit and temporary.
+- Combined service editing, monthly totals and payment recording in My ledger; Calendar and Reports remain separate.
+- Compact forms, optional details, status filtering, responsive five-language layout and quieter visuals.
+- Replaced Electron with Tauri 2 and system WebView2, without shipping a browser runtime.
+- Native atomic JSON storage, file-dialog backup/restore and safe one-time migration from the old saved ledger. Original Electron files remain unchanged.
+- Restricted native bridge, remote navigation/popup/permission denial and actual packaged-app regression checks.
+- Windows installer, ZIP and checksums, with included third-party license notices.
+
 ## 0.2.0 — 2026-10-12
 
 - Windows x64 desktop app with installer, installation-free ZIP and SHA-256 checksums.

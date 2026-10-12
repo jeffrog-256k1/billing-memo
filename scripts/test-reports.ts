@@ -40,22 +40,22 @@ try {
     ledger,
   });
   await page.reload();
-  assert.equal(await page.locator('.hero').isVisible(), true);
-  await page.click('a[href="#/services"]');
-  await page.locator('a[href="#/services"][aria-current="page"]').waitFor();
+  await page.locator('.ledger-panel').waitFor();
+  await page.click('a[href="#/ledger"]');
+  await page.locator('a[href="#/ledger"][aria-current="page"]').waitFor();
   assert.equal(await page.locator('.bill-row').count(), 1);
-  assert.equal(await page.locator('.aside').isVisible(), false);
+  assert.equal(await page.locator('.calendar-panel').isVisible(), false);
   await page.click('a[href="#/calendar"]');
   await page.locator('a[href="#/calendar"][aria-current="page"]').waitFor();
-  assert.equal(await page.locator('.aside').isVisible(), true);
+  assert.equal(await page.locator('.calendar-panel').isVisible(), true);
   await page.click('a[href="#/reports"]');
   await page.locator('#report-form').waitFor();
-  assert.equal(await page.locator('.workspace-grid').isVisible(), false);
+  assert.equal(await page.locator('.ledger-layout').isVisible(), false);
   await page.goBack();
   assert.ok(page.url().endsWith('#/calendar'));
   await page.goForward();
   await page.locator('#report-form').waitFor();
-  checks.push('Four separate routes with browser back/forward navigation');
+  checks.push('Three separate routes with browser back/forward navigation');
   const analyze = async (start: string, end: string, basis = 'paid') => {
     await page.fill('#report-form [name="start"]', start);
     await page.fill('#report-form [name="end"]', end);
@@ -94,7 +94,7 @@ try {
   for (const lang of ['en', 'ko', 'zh-CN', 'ja', 'es']) {
     await page.selectOption('#language', lang);
     await page.setViewportSize({ width: 390, height: 844 });
-    for (const route of ['overview', 'services', 'calendar', 'reports']) {
+    for (const route of ['ledger', 'calendar', 'reports']) {
       await page.click(`a[href="#/${route}"]`);
       await page.locator(`a[href="#/${route}"][aria-current="page"]`).waitFor();
       assert.equal(
@@ -106,7 +106,7 @@ try {
     if (lang === 'ko')
       await page.screenshot({ path: 'test-results/report-mobile-ko.png', fullPage: true });
   }
-  checks.push('All four pages fit mobile widths in all five languages');
+  checks.push('All three pages fit mobile widths in all five languages');
   await page.selectOption('#language', 'en');
   await page.setViewportSize({ width: 1440, height: 1000 });
   await analyze('2024-01-01', '2029-01-31', 'scheduled');

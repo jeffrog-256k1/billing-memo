@@ -1,13 +1,22 @@
 import './style.css';
 import './layout.css';
 import './pages.css';
+import './workspace.css';
+import { workspaceShell, workspaceRows } from './workspace-render.ts';
+import {
+  desktop,
+  loadWorkspace,
+  saveWorkspace,
+  exportNative,
+  importNative,
+  openNative,
+} from './platform.ts';
 import { mountReports, newReportState } from './reports-ui.ts';
 import {
   amountInput,
   billsFor,
   blankLedger,
   categories,
-  converted,
   currencies,
   daysInMonth,
   digits,
@@ -17,7 +26,6 @@ import {
   MAX_PAYMENTS,
   MAX_SERVICES,
   money,
-  monthlyRunRate,
   parseAmount,
   safeUrl,
   settle,
@@ -35,7 +43,6 @@ import {
 } from './model.ts';
 import { languages, translate, type Key, type Language } from './i18n.ts';
 import { sampleLedger } from './sample.ts';
-import { drawCircuit } from './circuit.ts';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const e = (v: unknown) =>
@@ -43,20 +50,18 @@ const e = (v: unknown) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
-const routes = ['overview', 'services', 'calendar', 'reports'] as const;
+const routes = ['ledger', 'calendar', 'reports'] as const;
 type Route = (typeof routes)[number];
-const routeKeys: Record<Route, Key> = {
-  overview: 'overview',
-  services: 'servicePage',
-  calendar: 'calendarPage',
-  reports: 'reports',
-};
 const readRoute = (): Route =>
-  routes.includes(location.hash.slice(2) as Route) ? (location.hash.slice(2) as Route) : 'overview';
+  routes.includes(location.hash.slice(2) as Route) ? (location.hash.slice(2) as Route) : 'ledger';
 let route = readRoute();
 const reportState = newReportState();
-const desktop = location.protocol === 'billing-memo:';
-let lang: Language = 'en';
+const preferred = navigator.language.startsWith('zh') ? 'zh-CN' : navigator.language.slice(0, 2);
+let lang: Language = languages.includes(preferred as Language) ? (preferred as Language) : 'en';
+let status = '',
+  saving = false,
+  legacyError = false,
+  migrated = false;
 let month = today().slice(0, 7),
   selectedDay = '',
   search = '',
@@ -66,15 +71,29 @@ let month = today().slice(0, 7),
 let local = blankLedger(),
   sample = sampleLedger(month),
   lastRaw: string | null = null,
+  expectedRaw: string | null = null,
   storageIssue: Key | null = null,
   corrupt = false;
 try {
   const savedLanguage = localStorage.getItem('billing-memo.language');
   if (languages.includes(savedLanguage as Language)) lang = savedLanguage as Language;
-  lastRaw = localStorage.getItem(STORAGE_KEY);
+} catch {
+  /* Language preferences are optional. */
+}
+try {
+  const loaded = await loadWorkspace();
+  lastRaw = loaded.raw;
+  expectedRaw = loaded.migrated ? null : loaded.raw;
+  legacyError = loaded.legacy_error;
+  migrated = loaded.migrated;
   if (lastRaw) {
     try {
       local = validateLedger(JSON.parse(lastRaw));
+      if (migrated) {
+        const raw = JSON.stringify(local);
+        await saveWorkspace(raw, null);
+        lastRaw = expectedRaw = raw;
+      }
     } catch {
       corrupt = true;
       storageIssue = 'corrupt';
@@ -83,8 +102,7 @@ try {
 } catch {
   storageIssue = 'storageError';
 }
-let demo = !lastRaw || corrupt;
-let paused = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let demo = !desktop && new URLSearchParams(location.search).get('demo') === '1';
 let undoLedger: Ledger | null = null,
   undoMode = false,
   pendingImport: Ledger | null = null;
@@ -110,6 +128,10 @@ const monthText = (value: string) =>
     new Date(value + '-01T00:00:00Z'),
   );
 function download(content: string, file: string, type = 'application/json') {
+  if (desktop) {
+    void exportNative(content, file).catch(() => toast('exportFailed'));
+    return;
+  }
   const url = URL.createObjectURL(new Blob([content], { type })),
     anchor = document.createElement('a');
   anchor.href = url;
@@ -133,7 +155,8 @@ function toast(key: Key, undo = false) {
     undo ? 30000 : 7000,
   );
 }
-function commit(next: Ledger, replacing = false): boolean {
+async function commit(next: Ledger, replacing = false): Promise<boolean> {
+  if (saving) return false;
   validateLedger(next);
   if (demo) sample = next;
   else {
@@ -141,128 +164,68 @@ function commit(next: Ledger, replacing = false): boolean {
       toast('corrupt');
       return false;
     }
+    saving = true;
+    document
+      .querySelectorAll<HTMLButtonElement>('dialog button')
+      .forEach((b) => (b.disabled = true));
     try {
-      if (localStorage.getItem(STORAGE_KEY) !== lastRaw) {
+      const raw = JSON.stringify(next);
+      await saveWorkspace(raw, expectedRaw);
+      lastRaw = expectedRaw = raw;
+      storageIssue = null;
+      corrupt = false;
+    } catch (error) {
+      if (String(error).includes('conflict')) {
         storageIssue = 'conflict';
+        saving = false;
         render();
         return false;
       }
-      const raw = JSON.stringify(next);
-      localStorage.setItem(STORAGE_KEY, raw);
-      lastRaw = raw;
-      storageIssue = null;
-      corrupt = false;
-    } catch {
       storageIssue = 'storageError';
     }
+    saving = false;
     local = next;
   }
   render();
   return true;
 }
-function stat(key: Key, result: ReturnType<typeof totals>, hint: Key) {
-  return `<div class="stat"><p class="micro">${e(t(key))}</p><div class="stat-value">${result.missing.length ? '≈ ' : ''}${e(m(result.total))}</div><p class="hint">${e(t(result.missing.length ? 'partial' : hint))}</p></div>`;
-}
 function render() {
-  view = route === 'services' ? 'services' : 'bills';
   document.documentElement.lang = lang;
-  const ledger = data(),
-    bills = billsFor(ledger, month),
-    sum = totals(bills, ledger);
-  app.innerHTML = `
-    <a class="skip" href="#page-content">${e(t('skip'))}</a>
-    <header class="topbar"><a class="brand" href="#/overview"><img src="./favicon.svg" alt=""/>billing memo<span>BM / 001</span></a><div class="top-tools"><span class="local-badge"><i class="dot"></i>${e(t(demo ? 'demo' : desktop ? 'desktopLocal' : 'local'))}</span><button class="quiet" id="motion" aria-pressed="${paused}" title="${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}">${paused ? '▷' : 'Ⅱ'}<span class="sr-only">${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}</span></button><label class="sr-only" for="language">Language</label><select id="language"><option value="en">EN · English</option><option value="ko">KO · 한국어</option><option value="zh-CN">ZH · 简体中文</option><option value="ja">JA · 日本語</option><option value="es">ES · Español</option></select></div></header>
-    <main class="shell"><nav class="page-nav" aria-label="${e(t('navigation'))}">${routes.map((r, i) => `<a href="#/${r}" ${route === r ? 'aria-current="page"' : ''}><span>0${i + 1} /</span>${e(t(routeKeys[r]))}</a>`).join('')}</nav><div id="page-content" tabindex="-1"></div><section class="hero" ${route !== 'overview' ? 'hidden' : ''}><div><p class="eyebrow">${e(t('tagline'))}</p><h1>${e(t('heroA'))}<br/>${e(t('heroB'))}</h1><p class="intro">${e(t('intro'))}</p></div><div class="hero-figure"><canvas id="circuit" aria-hidden="true"></canvas></div></section>
-    ${route === 'services' || route === 'calendar' ? `<header class="compact-heading"><p class="eyebrow">BILLING MEMO / ${route.toUpperCase()}</p><h1>${e(t(routeKeys[route]))}</h1></header>` : ''}<section class="mode-bar"><div><p class="mode-label">${demo ? '◌' : '●'} ${e(t(demo ? 'demo' : desktop ? 'desktopLocal' : 'local'))}</p><p class="hint">${e(t(demo ? 'demoHint' : desktop ? 'desktopHint' : 'backupHint'))}</p></div><button id="switch-mode" class="accent">${e(t(demo ? 'workspace' : 'viewDemo'))} ↗</button></section>
-    ${storageIssue ? `<div class="storage-error" role="alert">${e(t(storageIssue))}${corrupt ? ` <button id="raw-backup">${e(t('rawBackup'))}</button>` : ''}</div>` : ''}
-    <div class="overview-head"><div class="month-picker" ${route === 'reports' ? 'hidden' : ''}><button id="prev-month" aria-label="${e(t('previous'))}" ${month === '2000-01' ? 'disabled' : ''}>←</button><label class="sr-only" for="month">${e(t('month'))}</label><input id="month" type="month" value="${month}" min="2000-01" max="2199-12"/><button id="next-month" aria-label="${e(t('next'))}" ${month === '2199-12' ? 'disabled' : ''}>→</button></div><div class="page-actions"><button id="preferences">${e(t('settings'))}</button><button id="backup">↓ ${e(t('export'))}</button><button id="restore">↑ ${e(t('import'))}</button><button class="primary" id="add">+ ${e(t('add'))}</button></div></div>
-    <div ${route === 'reports' || route === 'services' ? 'hidden' : ''}><section class="stats" aria-label="${e(t('monthTotal'))}">${stat('monthTotal', sum, 'totalHint')}${stat(
-      'paid',
-      totals(
-        bills.filter((b) => b.paidAt),
-        ledger,
-      ),
-      'recordedOn',
-    )}${stat(
-      'remaining',
-      totals(
-        bills.filter((b) => !b.paidAt),
-        ledger,
-      ),
-      'estimated',
-    )}${stat('runRate', monthlyRunRate(ledger, month), 'runHint')}</section>
-    ${sum.missing.length ? `<div class="rate-warning">${e(t('rateMissing'))}: ${e(sum.missing.join(', '))} <button data-action="preferences">${e(t('settings'))}</button></div>` : ''}
-    <div class="native-totals">${Object.entries(sum.byCurrency)
-      .map(([c, v]) => `<span>${e(m(v!, c as Currency))}</span>`)
-      .join(
-        '',
-      )}${Object.keys(sum.byCurrency).some((c) => c !== ledger.base) ? `<span>${e(t('converted'))}</span>` : ''}</div>
-    </div><div class="workspace-grid ${route === 'services' ? 'services-grid' : ''}" ${route !== 'services' && route !== 'calendar' ? 'hidden' : ''}><section id="ledger" tabindex="-1"><header class="panel-head"><h2><span class="section-number">01 /</span>${e(t(route === 'services' ? 'allServices' : 'monthBills'))}</h2></header><div class="filters"><label class="sr-only" for="search">${e(t('search'))}</label><input type="search" id="search" value="${e(search)}" placeholder="${e(t('search'))}"/><label class="sr-only" for="category">${e(t('category'))}</label><select id="category"><option value="">${e(t('allCategories'))}</option>${options(categories, category, true)}</select><label class="sr-only" for="project">${e(t('project'))}</label><select id="project"><option value="">${e(t('allProjects'))}</option>${options([...new Set([...ledger.services, ...bills].map((s) => s.project).filter(Boolean))].sort(), project)}</select></div><div id="bill-list"></div></section>
-    <aside class="aside" ${route === 'services' ? 'hidden' : ''}><section><header class="panel-head"><h2><span class="section-number">02 /</span>${e(t('calendar'))}</h2></header><div class="calendar-head"><span>${e(monthText(month))}</span><span>↘ ${String(bills.length).padStart(2, '0')}</span></div><div id="calendar-grid" class="calendar-grid"></div><p class="calendar-foot">${e(t('dueHint'))}</p><button class="quiet" id="clear-day" ${!selectedDay ? 'hidden' : ''}>${e(t('clearDay'))} ×</button><div class="page-actions"><button id="csv">↓ ${e(t('exportCsv'))}</button><button id="ics">↓ ${e(t('exportIcs'))}</button></div></section>
-    <section><div class="budget-box"><div class="budget-head"><h3>${e(t('budget'))}</h3><button class="quiet" data-action="preferences" aria-label="${e(t('settings'))}">↗</button></div>${ledger.budget ? `<div class="budget-value">${e(m(ledger.budget))}</div><progress class="budget-meter ${sum.total > ledger.budget ? 'over' : ''}" max="${ledger.budget}" value="${Math.min(sum.total, ledger.budget)}" aria-label="${e(t('budget'))}"></progress><p class="hint">${sum.missing.length ? e(t('partial')) : e(t(sum.total > ledger.budget ? 'budgetOver' : 'budgetLeft')) + ' · ' + e(m(Math.abs(ledger.budget - sum.total)))}</p>` : `<p class="hint">${e(t('budgetNone'))}</p><button class="quiet" data-action="preferences">+ ${e(t('budget'))}</button>`}</div><div class="distribution"><h3>${e(t('breakdown'))}</h3>${categories
-      .map((cat) => {
-        const value = totals(
-          bills.filter((b) => b.category === cat),
-          ledger,
-        ).total;
-        return value
-          ? `<div class="break-row"><span>${e(t(cat))}</span><meter min="0" max="${Math.max(1, sum.total)}" value="${value}" aria-label="${e(t(cat))}"></meter><span>${e(m(value))}</span></div>`
-          : '';
-      })
-      .join(
-        '',
-      )}${sum.missing.length ? `<p class="hint">${e(t('partial'))}</p>` : ''}</div></section></aside></div>
-    <section class="outlook" ${route !== 'overview' ? 'hidden' : ''}><header><h2><span class="section-number">03 /</span>${e(t('forecast'))}</h2><span class="count">${ledger.services.filter((s) => !s.paused).length} ${e(t('active'))}</span></header><div class="bars" id="forecast"></div><p class="hint">${e(t('forecastHint'))}</p></section>
-    <section id="reports-root" ${route !== 'reports' ? 'hidden' : ''}></section><p class="storage-note">${e(t(desktop ? 'desktopHint' : 'backupHint'))}<br/>${e(t('secretsHint'))}</p>
-    <footer class="footer"><span>+ BILLING MEMO / ${e(t('sheet'))}</span><div class="footer-links"><a href="https://github.com/jeffrog-256k1/billing-memo" target="_blank" rel="noopener noreferrer">${e(t('source'))} ↗</a><a href="https://github.com/jeffrog-256k1/billing-memo/blob/main/${lang === 'en' ? 'README.md' : `README.${lang}.md`}" target="_blank" rel="noopener noreferrer">${e(t('docs'))} ↗</a>${desktop ? '' : `<a href="https://github.com/jeffrog-256k1/billing-memo/releases/latest" target="_blank" rel="noopener noreferrer">${e(t('desktopDownload'))} ↓</a>`}<span>v0.2.0 / MIT</span></div></footer></main><div id="toast" class="toast" role="status" aria-live="polite"></div><input type="file" id="import-file" accept=".json,application/json"/><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
+  view = route === 'calendar' ? 'bills' : 'services';
+  app.innerHTML = workspaceShell({
+    ledger: data(),
+    month,
+    lang,
+    route,
+    demo,
+    desktop,
+    storageIssue,
+    corrupt,
+    search,
+    category,
+    project,
+    status,
+    saving,
+    legacyError,
+  });
   (document.querySelector('#language') as HTMLSelectElement).value = lang;
   renderList();
   renderCalendar();
   renderForecast();
-  drawCircuit(
-    document.querySelector('#circuit')!,
-    ledger.services.filter((s) => !s.paused).map((s) => s.name),
-    m(sum.total),
-    paused || route !== 'overview',
-  );
   if (route === 'reports')
-    mountReports(document.querySelector('#reports-root')!, ledger, lang, reportState, download);
+    mountReports(document.querySelector('#reports-root')!, data(), lang, reportState, download);
   wire();
 }
 function renderList() {
-  const ledger = data(),
-    bills = billsFor(ledger, month);
-  const rows: (Service | Bill)[] = view === 'bills' ? bills : ledger.services;
-  const filtered = rows.filter(
-    (row) =>
-      (!category || row.category === category) &&
-      (!project || row.project === project) &&
-      (!selectedDay || view === 'services' || ('date' in row && row.date === selectedDay)) &&
-      `${row.name} ${row.project} ${row.notes}`
-        .toLocaleLowerCase(lang)
-        .includes(search.toLocaleLowerCase(lang)),
-  );
-  document.querySelector('#bill-list')!.innerHTML =
-    `<div class="list-head"><span>${e(t('service'))} / ${String(filtered.length).padStart(2, '0')}</span><span>${e(t('amount'))}</span><span>${e(t('due'))}</span><span>${e(t('actions'))}</span></div>` +
-    (filtered.length
-      ? filtered
-          .map((row) => {
-            const bill = 'date' in row ? row : bills.find((b) => b.id === row.id),
-              paid = bill?.paidAt;
-            const svc = ledger.services.find((s) => s.id === row.id);
-            const state = paid
-              ? 'paid'
-              : svc?.paused
-                ? 'paused'
-                : bill
-                  ? bill.date < today()
-                    ? 'overdue'
-                    : 'estimated'
-                  : 'noDue';
-            return `<article class="bill-row cat-${row.category}" data-row="${e(row.id)}"><div class="service-name"><span class="service-icon" aria-hidden="true">${e(row.name.slice(0, 2).toUpperCase())}</span><div><h3>${e(row.name)}</h3><p class="hint">${e(row.project || t(row.category))} · ${e(t(row.kind))}</p></div></div><div class="amount-cell">${e(m(row.amount, row.currency))}<small>${e(t('date' in row && row.paidAt ? 'actual' : row.kind === 'usage' ? 'usage' : 'amount'))}</small></div><div class="due-cell">${bill ? e(dateText(bill.date, true)) : '—'}<span class="status ${paid ? 'is-paid' : state === 'overdue' ? 'is-late' : ''}">${e(t(state))}</span></div><div class="row-actions">${bill ? `<button class="pay" data-pay="${e(bill.key)}" title="${e(t(paid ? 'editPayment' : 'record'))}">${paid ? '✓' : '+'} ${e(t(paid ? 'paid' : 'record'))}</button>` : ''}${svc ? `<button data-edit="${e(row.id)}" aria-label="${e(t('edit'))} ${e(row.name)}">${e(t('edit'))}</button>` : ''}</div>${row.url || row.notes ? `<div class="row-extra"><p>${e(row.notes)}</p>${row.url ? `<a href="${e(row.url)}" rel="noopener noreferrer" target="_blank" aria-label="${e(row.name)} · ${e(t('open'))}">${e(t('open'))} ↗</a>` : ''}</div>` : ''}</article>`;
-          })
-          .join('')
-      : `<div class="empty">${e(t(rows.length ? 'noMatches' : 'noBills'))}</div>`);
+  const result = workspaceRows(data(), month, lang, route, {
+    search,
+    category,
+    project,
+    status,
+    day: selectedDay,
+  });
+  document.querySelector('#bill-list')!.innerHTML = result.html;
+  document.querySelector('#visible-count')!.textContent = String(result.count).padStart(2, '0');
 }
 function renderCalendar() {
   const bills = billsFor(data(), month),
@@ -310,6 +273,12 @@ function wire() {
     document.getElementById(id)?.addEventListener('click', fn);
   on('switch-mode', () => {
     demo = !demo;
+    const url = new URL(location.href);
+    url.searchParams.delete('demo');
+    history.replaceState(null, '', url);
+    reportState.options.project = '';
+    reportState.options.category = '';
+    status = '';
     search = '';
     project = '';
     category = '';
@@ -317,9 +286,10 @@ function wire() {
     undoLedger = null;
     render();
   });
-  on('motion', () => {
-    paused = !paused;
-    render();
+  on('current-month', () => goMonth(today().slice(0, 7)));
+  document.querySelector('#status')!.addEventListener('change', (ev) => {
+    status = (ev.target as HTMLSelectElement).value;
+    renderList();
   });
   on('prev-month', () => goMonth(shiftMonth(month, -1)));
   on('next-month', () => goMonth(shiftMonth(month, 1)));
@@ -339,7 +309,7 @@ function wire() {
   on('preferences', openPreferences);
   on('backup', backup);
   on('raw-backup', () => download(lastRaw ?? '', `billing-memo-original-${today()}.json`));
-  on('restore', () => document.querySelector<HTMLInputElement>('#import-file')!.click());
+  on('restore', startRestore);
   on('csv', () =>
     download(
       exportCsv(billsFor(data(), month)),
@@ -383,7 +353,17 @@ function wire() {
     (ev.target as HTMLInputElement).value = '';
   });
 }
-app.addEventListener('click', (ev) => {
+app.addEventListener('click', async (ev) => {
+  const link = (ev.target as Element).closest<HTMLAnchorElement>('a[target="_blank"]');
+  if (desktop && link) {
+    ev.preventDefault();
+    try {
+      await openNative(link.href);
+    } catch {
+      toast('error');
+    }
+    return;
+  }
   const button = (ev.target as Element).closest<HTMLButtonElement>('button');
   if (!button) return;
   const a = button.dataset;
@@ -391,6 +371,21 @@ app.addEventListener('click', (ev) => {
   if (a.pay) {
     const bill = billsFor(data(), month).find((b) => b.key === a.pay);
     if (bill) openPayment(bill);
+  }
+  if (a.action === 'add') openService();
+  if (a.action === 'preferences') openPreferences();
+  if (a.action === 'restore') void startRestore();
+  if (a.action === 'exit-demo') {
+    demo = false;
+    const url = new URL(location.href);
+    url.searchParams.delete('demo');
+    history.replaceState(null, '', url);
+    search = category = project = status = selectedDay = '';
+    render();
+  }
+  if (a.action === 'clear-filters') {
+    search = category = project = status = selectedDay = '';
+    render();
   }
   if (a.view) {
     view = a.view as typeof view;
@@ -411,7 +406,7 @@ app.addEventListener('click', (ev) => {
   if (a.action === 'undo' && undoLedger && undoMode === demo) {
     const prev = undoLedger;
     undoLedger = null;
-    commit(prev);
+    await commit(prev);
     toast('saved');
   }
 });
@@ -461,10 +456,17 @@ function openService(id?: string) {
   };
   const dialog = openDialog(
     old ? 'edit' : 'add',
-    `<div class="form-grid">${!old ? `<label class="field full">${e(t('preset'))}<select id="provider"><option value="">${e(t('custom'))}</option>${providerList.map(([name], i) => `<option value="${i}">${name}</option>`).join('')}</select></label>` : ''}${field('name', 'name', s.name, 'text', 'required maxlength="80"')}${field('project', 'project', s.project, 'text', 'maxlength="60"')}<label class="field">${e(t('category'))}<select name="category">${options(categories, s.category, true)}</select></label><label class="field">${e(t('kind'))}<select name="kind">${options(kinds, s.kind, true)}</select></label>${field('amount', 'amount', amountInput(s.amount, s.currency), 'number', `required min="0" step="${digits(s.currency) ? '0.01' : '1'}"`)}<label class="field">${e(t('currency'))}<select name="currency">${options(currencies, s.currency)}</select></label>${field('anchor', 'anchor', s.anchor, 'date', 'required min="2000-01-01" max="2199-12-31"')}${field('end', 'end', s.end, 'date', 'min="2000-01-01" max="2199-12-31"')}<p class="hint full">${e(t('dateHint'))}</p><label class="field full">${e(t('url'))}<input name="url" type="url" value="${e(s.url)}" maxlength="2000" placeholder="https://…"/></label><label class="field full">${e(t('notes'))}<textarea name="notes" maxlength="2000">${e(s.notes)}</textarea></label><label class="check-field full"><input name="paused" type="checkbox" ${s.paused ? 'checked' : ''}/>${e(t('pausedHint'))}</label></div>`,
+    `<div class="form-grid">${!old ? `<label class="field full">${e(t('preset'))}<select id="provider"><option value="">${e(t('custom'))}</option>${providerList.map(([name], i) => `<option value="${i}">${name}</option>`).join('')}</select></label>` : ''}${field('name', 'name', s.name, 'text', 'required maxlength="80"')}<label class="field">${e(t('kind'))}<select name="kind">${options(kinds, s.kind, true)}</select></label>${field('amount', 'amount', amountInput(s.amount, s.currency), 'number', `required min="0" step="${digits(s.currency) ? '0.01' : '1'}"`)}<label class="field">${e(t('currency'))}<select name="currency">${options(currencies, s.currency)}</select></label>${field('anchor', 'anchor', s.anchor, 'date', 'required min="2000-01-01" max="2199-12-31"')}<label class="field">${e(t('url'))}<input name="url" type="url" value="${e(s.url)}" maxlength="2000" placeholder="https://…"/></label><p class="hint full">${e(t('dateShortHint'))}</p><details class="form-optional full" ${old && (s.project || s.notes) ? 'open' : ''}><summary>${e(t('optionalFields'))}</summary><div class="form-grid">${field('project', 'project', s.project, 'text', 'maxlength="60"')}<label class="field">${e(t('category'))}<select name="category">${options(categories, s.category, true)}</select></label><label class="field full">${e(t('notes'))}<textarea name="notes" maxlength="2000">${e(s.notes)}</textarea></label></div></details><details class="form-optional full" ${s.end || s.paused ? 'open' : ''}><summary>${e(t('billingOptions'))}</summary><div class="form-grid">${field('end', 'end', s.end, 'date', 'min="2000-01-01" max="2199-12-31"')}<label class="check-field"><input name="paused" type="checkbox" ${s.paused ? 'checked' : ''}/>${e(t('pausedHint'))}</label></div></details></div>`,
     `${old ? `<button type="button" class="danger" id="remove-service">${e(t('delete'))}</button>` : ''}${controls()}`,
   );
   const form = dialog.querySelector<HTMLFormElement>('form')!;
+  form.addEventListener(
+    'invalid',
+    (ev) => {
+      (ev.target as HTMLElement).closest('details')?.setAttribute('open', '');
+    },
+    true,
+  );
   const input = (name: string) => form.elements.namedItem(name) as HTMLInputElement;
   dialog.querySelector('#provider')?.addEventListener('change', (ev) => {
     const v = (ev.target as HTMLSelectElement).value;
@@ -478,7 +480,7 @@ function openService(id?: string) {
   input('currency').addEventListener('change', () => {
     input('amount').step = digits(input('currency').value as Currency) ? '0.01' : '1';
   });
-  form.addEventListener('submit', (ev) => {
+  form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     try {
       const currency = input('currency').value as Currency;
@@ -497,7 +499,7 @@ function openService(id?: string) {
         paused: input('paused').checked,
       });
       if (
-        commit({
+        await commit({
           ...data(),
           services: old
             ? data().services.map((x) => (x.id === s.id ? service : x))
@@ -509,10 +511,10 @@ function openService(id?: string) {
       formError();
     }
   });
-  dialog.querySelector('#remove-service')?.addEventListener('click', () => {
+  dialog.querySelector('#remove-service')?.addEventListener('click', async () => {
     if (!confirm(t('deleteConfirm'))) return;
     const prior = data();
-    if (commit({ ...data(), services: data().services.filter((x) => x.id !== s.id) })) {
+    if (await commit({ ...data(), services: data().services.filter((x) => x.id !== s.id) })) {
       undoLedger = prior;
       undoMode = demo;
       toast('removed', true);
@@ -529,13 +531,13 @@ function openPayment(bill: Bill) {
     `<p><strong>${e(bill.name)}</strong> · ${e(dateText(bill.date))} · ${bill.currency}</p><p class="hint">${e(t('paymentHint'))}</p><div class="form-grid">${field('actual', 'actual', amountInput(bill.amount, bill.currency), 'number', `required min="0" step="${digits(bill.currency) ? '0.01' : '1'}"`)}${field('paidAt', 'recordedOn', bill.paidAt || today(), 'date', 'required min="2000-01-01" max="2199-12-31"')}</div>`,
     `${bill.paidAt ? `<button type="button" class="danger" id="unpay">${e(t('unpay'))}</button>` : ''}${controls()}`,
   );
-  dialog.querySelector('form')!.addEventListener('submit', (ev) => {
+  dialog.querySelector('form')!.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     try {
       const form = ev.target as HTMLFormElement;
       const raw = new FormData(form);
       if (
-        commit(
+        await commit(
           settle(
             data(),
             bill,
@@ -549,10 +551,12 @@ function openPayment(bill: Bill) {
       formError();
     }
   });
-  dialog.querySelector('#unpay')?.addEventListener('click', () => {
+  dialog.querySelector('#unpay')?.addEventListener('click', async () => {
     if (confirm(t('unpayConfirm'))) {
       const prior = data();
-      if (commit({ ...data(), payments: data().payments.filter((p) => p.key !== bill.key) })) {
+      if (
+        await commit({ ...data(), payments: data().payments.filter((p) => p.key !== bill.key) })
+      ) {
         undoLedger = prior;
         undoMode = demo;
         toast('saved', true);
@@ -585,7 +589,7 @@ function openPreferences() {
     budget.step = digits(base.value as Currency) ? '0.01' : '1';
     draw();
   });
-  form.addEventListener('submit', (ev) => {
+  form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     try {
       const rates: Ledger['rates'] = { [base.value]: 1 };
@@ -594,7 +598,7 @@ function openPreferences() {
         if (value) rates[c] = Number(value);
       }
       if (
-        commit(
+        await commit(
           validateLedger({
             ...ledger,
             base: base.value,
@@ -609,6 +613,20 @@ function openPreferences() {
     }
   });
 }
+async function startRestore() {
+  if (!desktop) {
+    document.querySelector<HTMLInputElement>('#import-file')!.click();
+    return;
+  }
+  try {
+    const raw = await importNative();
+    if (raw === null) return;
+    pendingImport = validateLedger(JSON.parse(raw));
+    openRestore();
+  } catch {
+    toast('importError');
+  }
+}
 function openRestore() {
   if (!pendingImport) return;
   const dialog = openDialog(
@@ -617,10 +635,10 @@ function openRestore() {
     `<button type="button" data-action="close">${e(t('cancel'))}</button><button class="primary" type="submit">${e(t('restore'))}</button>`,
   );
   dialog.querySelector('#backup-before')!.addEventListener('click', backup);
-  dialog.querySelector('form')!.addEventListener('submit', (ev) => {
+  dialog.querySelector('form')!.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     if (pendingImport) {
-      if (commit(pendingImport, true)) {
+      if (await commit(pendingImport, true)) {
         pendingImport = null;
         toast('saved');
       }
@@ -632,10 +650,6 @@ window.addEventListener('storage', (ev) => {
     storageIssue = 'conflict';
     if (!demo) render();
   }
-});
-matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (ev) => {
-  paused = ev.matches;
-  render();
 });
 window.addEventListener('hashchange', () => {
   if (location.hash.startsWith('#/')) {

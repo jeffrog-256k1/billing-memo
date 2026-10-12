@@ -1,0 +1,42 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Billing Memo",
+  "version": "0.3.0",
+  "identifier": "app.leejungjae.billingmemo",
+  "build": {
+    "beforeBuildCommand": "npm run build:desktop",
+    "beforeDevCommand": "npm run build:desktop",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "csp": "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src ipc: http://ipc.localhost; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+      "capabilities": ["main"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": ["../desktop/icon.ico", "../desktop/icon.png"],
+    "copyright": "Copyright © 2026 Jungjae Lee",
+    "shortDescription": "Your monthly services and bills, in one place.",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "minimumWebview2Version": "120.0.0.0",
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": true,
+        "languages": ["English", "Korean", "SimpChinese", "Japanese", "Spanish"],
+        "compression": "lzma"
+      }
+    },
+    "resources": {
+      "../THIRD_PARTY_LICENSES.txt": "THIRD_PARTY_LICENSES.txt",
+      "../LICENSE": "LICENSE"
+    }
+  }
+}

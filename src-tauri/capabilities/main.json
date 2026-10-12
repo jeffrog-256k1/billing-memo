@@ -1,0 +1,6 @@
+{
+  "identifier": "main",
+  "description": "Only the local main window. Native access is limited to application commands.",
+  "windows": ["main"],
+  "permissions": []
+}

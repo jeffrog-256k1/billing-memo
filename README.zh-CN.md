@@ -2,60 +2,52 @@
 
 [English](README.md) · [한국어](README.ko.md) · [简体中文](README.zh-CN.md) · [日本語](README.ja.md) · [Español](README.es.md)
 
-**每项工具，一本清晰账本。** 在浏览器中整理云服务、托管、数据库、邮件、API 和订阅费用。
+**所有工具，一本清晰的账本。** 在本地管理云服务、托管、数据库、邮件、API 和订阅费用。
 
-[打开 Billing Memo](https://jeffrog-256k1.github.io/billing-memo/) · [MIT](LICENSE) · [更新日志](CHANGELOG.md)
+[下载 Windows v0.3.0](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [打开网页版](https://jeffrog-256k1.github.io/billing-memo/) · [查看示例](https://jeffrog-256k1.github.io/billing-memo/?demo=1)
 
-![使用虚构金额的费用电路动画](assets/cost-circuit.gif)
+![首次启动的空账本](assets/empty.png)
 
-## Windows 应用 · v0.2.0
+## 从空账本开始，一页管理
 
-[下载 Windows x64 安装程序或 ZIP](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [桌面指南](docs/DESKTOP.md)
+1. 首次打开是**空账本**。桌面版没有演示模式或预填订阅。
+2. 输入服务名称、金额、币种、周期和首次账单日期。账单链接可选，项目、分类、备注折叠在更多字段中。
+3. **我的账本**同时显示服务编辑、月度账单、已付金额和待付估算；切换月份无需离开服务列表。
+4. 付款后记录实际金额。通过**账本工具**备份或恢复 JSON。
 
-网页和桌面版均分为**概览、服务管理、付款日历、期间分析**。选择开始与结束日期（包含两端）即可查看总额、每月金额、月均值，并按项目或类别筛选。**实际付款**按付款日统计；**计划账单**按到期日统计已付记录及未付估算。可导出期间明细与每月汇总 CSV。缺失汇率标为部分合计。最多查询 120 个自然月，平均值包含空月份和部分月份。
+![手动选择的虚构示例](assets/overview.png)
 
-适用于 Windows 10/11 x64：安装 EXE，或完整解压 ZIP 后运行 Billing Memo.exe。支持离线使用；网页与桌面账本分别保存，通过 JSON 备份/恢复迁移。两种桌面包都在 %APPDATA%/Billing Memo 保存数据，ZIP 免安装但不是将数据放在 USB 文件夹。此版本未签名，Windows 可能显示未知发布者或 SmartScreen 提示。提供 SHA-256 校验值。
+网页版也默认空白。仅点击演示链接或在工具菜单选择演示时加载虚构数据。演示编辑不会保存或覆盖个人账本；点击“打开我的账本”返回原有记录。示例数字不是实际供应商价格。
 
-![虚构数据的期间与月度报告](assets/period-report.png)
+## 更小的 Windows 应用
 
-## 功能
+0.3 使用 **Tauri + 系统 WebView2** 替代 Electron。界面仍是本地 Web UI，但不再捆绑 Chromium/Node。安装 WebView2 后可离线使用。若运行时缺失或过旧，安装程序单独下载它；这部分不计入小型安装包大小。
 
-- 集中保存服务名称、账单链接、项目、分类和备注。快捷添加只填写名称和链接，不预设服务价格。
-- 记录每月、每年、一次性和用量费用。用量费用为**手动输入的月合计**，并非自动 API 计量。
-- 查看所选月份的预计支出、实付、待付以及经常费用月均值。付款时记录最终金额。
-- 按项目、分类、关键词或日历日期筛选，直接打开服务的账单网站。
-- 月预算、分类分布和六个月预测。支持 USD、KRW、EUR、JPY、CNY、GBP 及手动汇率。
-- 导出 JSON 备份、本月 CSV、未付账单日历（提前三天提醒）。导入先验证，再确认替换。
-- 完整支持英语、韩语、简体中文、日语和西班牙语，适配手机，支持暂停动画和系统减少动态效果设置。
+支持 Windows 10/11 x64。运行安装程序，或解压 ZIP 后启动 **Billing Memo.exe**；ZIP 也需要 WebView2。数据保存在 **%APPDATA%/app.leejungjae.billingmemo/ledger.json**，不随 ZIP 保存在 U 盘内。发布包未签名，Windows 可能显示发布者/SmartScreen 提示。提供 SHA256SUMS.txt，不含自动更新。
 
-![Billing Memo 桌面界面](assets/overview.png)
+从 0.2 升级时请先关闭旧版并导出 JSON。首次启动尝试复制旧默认配置中的已保存账本，不修改原文件，也不导入演示数据。失败时显示提示，可恢复 JSON；0.1/0.2 备份仍兼容。[桌面指南](docs/DESKTOP.md)
 
-## 开始使用
+## 三个页面
 
-1. 体验虚构演示后，点击**打开我的账本**。演示修改是临时的，不会覆盖真实账本。
-2. 添加服务、金额、币种和**首次付款日**，以该日期为重复基准。可设置最后付款日或暂停未付预估。
-3. 选择月份，点击**记录付款**。实际金额（可以为零）替换该服务当月的预估。
-4. 定期导出备份。恢复会替换当前账本，必要时先备份现有数据。
+- **我的账本：** 服务、账单链接、月总额、付款状态、搜索及项目/分类/状态筛选、预算和可折叠六个月预测。顶部合计始终包含全部服务，不受列表筛选影响。
+- **付款日历：** 到期日期、按日筛选、月度 CSV 和未付账单 ICS 提醒。
+- **期间分析：** 自选起止日期（含两端）、期间总额、月度金额和平均值、项目/分类筛选、明细及月度 CSV。可按实际付款日或计划到期日统计；最多 120 个自然月，平均值包含空月和部分月份。
 
-## 计算规则
+## 计算与存储
 
-金额以最小货币单位整数保存（KRW/JPY 无小数，其他两位）。1 月 31 日的账单在 2 月使用月末，3 月恢复为 31 日。闰年 2 月 29 日的年度账单在平年使用 2 月 28 日。年费在**账单月份全额计入**，仅月均指标除以 12；一次性费用不计入经常费用月均值。
+支持月付、年付、一次性和用量费用；用量是**手动输入的月总额**，不会调用供应商 API。31 日账单在短月取月末，下月恢复 31 日。年费在到期月全额计入，只有月均经常性成本才除以 12。
 
-预计支出 = 已记实付 + 未付预估。付款属于原定账单月，实际支付日期另行保存；本工具不是现金制会计系统。已付快照不受服务修改、暂停或移除影响。服务修改会更新所有未付预估，包括过去月份。每个服务每月一笔账单，额外独立交易可另建一次性项目。
+月账单 = 已付实际金额 + 未付估算。1 月账单在 2 月支付，在账本中归于 1 月，在实际付款报告中归于 2 月。编辑、暂停或删除服务不会移除付款快照；编辑会改变包括历史月份在内的未付估算。每服务每月一张账单，额外交易可单独添加一次性服务。
 
-不同币种分别合计。缺少汇率时标明**部分合计**，绝不默认 1:1 换算。输入 `1 单位原币 = N 单位显示币`，逐项舍入到显示币最小单位。更换显示币种会重置汇率和预算。没有实时汇率、未来用量、税费或服务价格预测，请输入要管理的完整金额。
+支持 USD、KRW、EUR、JPY、CNY、GBP，金额按最小货币单位整数存储。KRW/JPY 无小数。汇率由用户输入，缺失时显示分币种金额和不完整的换算合计。更改显示币种会重置汇率和预算；没有自动或历史汇率。
 
-## 存储与限制
+桌面使用本地 JSON，网页使用浏览器 localStorage。无登录、后端或设备同步；两者通过 JSON 转移。恢复会确认后替换目标账本。删除浏览器数据会删除网页账本。保存失败或损坏会提示，不会静默清空。
 
-无需登录、账单 API、追踪或后端，应用不会自动请求第三方。账本保存在当前浏览器的 localStorage 中，不加密，并与同源脚本共享。清除网站数据会删除账本，无痕模式为临时存储。需要隔离时可部署在独立来源上。不要保存密码、API 密钥或卡号；导出文件包含输入内容，分享前请检查。
+上限：500 项服务、5,000 条付款、2 MiB 账本/导入、2000–2199 年、名称 80 字符、备注 2,000 字符。金额非负，每项最多 1,000 亿最小货币单位。仅允许无凭据的 HTTPS 链接。数据未加密，请勿保存密码、API 密钥或银行卡信息。不执行扣款、自动发票对账或后台提醒；ICS 提醒由日历应用处理。
 
-最多 500 个服务、5,000 笔付款；序列化账本及导入 JSON 最大 2 MiB；名称 80 字符、备注 2,000 字符；日期范围 2000–2199。每项金额为非负整数最小单位，上限 1,000 亿最小单位。仅允许不含登录凭据的 HTTPS 链接。检测多标签页冲突，保存失败或存储损坏时提供导出与恢复路径。
+## Development
 
-不执行付款、不跨设备同步、不自动核对发票、不发送后台通知。日历应用负责三天前提醒；建议导入独立日历以管理更新或删除。移除服务保留已付记录，并可立即撤销。示例金额是虚构的，不是服务商当前价格。
-
-## 本地运行
-
-需要 Node.js 22.12+ 和 npm。
+Node.js 22.12+ and npm:
 
 ```sh
 git clone https://github.com/jeffrog-256k1/billing-memo.git
@@ -63,8 +55,6 @@ cd billing-memo
 npm ci
 npm run dev
 ```
-
-打开命令显示的本地 URL。`dev` 构建并预览带生产 CSP 的静态应用，修改源码后重新运行。不需要密钥或环境文件。
 
 ```sh
 npm test
@@ -75,8 +65,8 @@ npm run test:reports
 npm run format:check
 ```
 
-构建和浏览器测试后，运行 `npm run render:assets` 重新生成 README 图片。测试使用隔离的虚构数据。网页应用没有运行时包依赖，桌面版包含 Electron；Vite、TypeScript、Playwright、gifenc 仅用于开发。
+The local dev command builds and previews the production CSP; rerun after source changes. Windows builds also require stable Rust, MSVC C++ Build Tools and WebView2. See [desktop build instructions](docs/DESKTOP.md). No provider keys are needed.
 
-[贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [依赖](THIRD_PARTY_NOTICES.md)
+[Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Dependencies](THIRD_PARTY_NOTICES.md)
 
-作者：[jeffrog-256k1](https://github.com/jeffrog-256k1) · [leejungjae.app](https://leejungjae.app)
+Built by [jeffrog-256k1](https://github.com/jeffrog-256k1) · [leejungjae.app](https://leejungjae.app)
