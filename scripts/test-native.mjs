@@ -1,5 +1,5 @@
 import { chromium } from 'playwright';
-import { spawn } from 'node:child_process';
+import { spawn, execFileSync } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { mkdir, readFile, writeFile, readdir, copyFile } from 'node:fs/promises';
@@ -15,6 +15,34 @@ await mkdir(root, { recursive: true });
 const checks = [],
   errors = [];
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function ciDebugPolicy(port) {
+  // WebView2 150+ ignores environment overrides in elevated hosted Windows runners.
+  // Scope the temporary HKLM policy to this executable, only in disposable CI.
+  // https://github.com/MicrosoftEdge/WebView2Feedback/issues/5645
+  if (process.env.GITHUB_ACTIONS !== 'true') return () => {};
+  const key = 'HKLM\\SOFTWARE\\Policies\\Microsoft\\Edge\\WebView2\\AdditionalBrowserArguments';
+  const name = path.basename(executable);
+  const run = (args) => execFileSync('reg.exe', args, { windowsHide: true, stdio: 'ignore' });
+  let exists = true;
+  try {
+    run(['query', key, '/v', name]);
+  } catch {
+    exists = false;
+  }
+  if (exists) throw Error('Refusing to overwrite an existing WebView2 test policy');
+  run([
+    'add',
+    key,
+    '/v',
+    name,
+    '/t',
+    'REG_SZ',
+    '/d',
+    `--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1`,
+    '/f',
+  ]);
+  return () => run(['delete', key, '/v', name, '/f']);
+}
 async function launch(profile) {
   await mkdir(profile, { recursive: true });
   const server = createServer();
@@ -22,6 +50,7 @@ async function launch(profile) {
   await once(server, 'listening');
   const port = server.address().port;
   await new Promise((resolve) => server.close(resolve));
+  const clearPolicy = ciDebugPolicy(port);
   const child = spawn(executable, ['--data-dir', profile], {
     windowsHide: true,
     stdio: 'ignore',
@@ -54,12 +83,14 @@ async function launch(profile) {
         const exited = child.exitCode !== null ? Promise.resolve() : once(child, 'exit');
         child.kill();
         await exited;
+        clearPolicy();
         await delay(400);
       },
     };
   } catch (error) {
     await browser?.close();
     child.kill();
+    clearPolicy();
     throw error;
   }
 }
