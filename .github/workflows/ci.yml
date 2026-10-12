@@ -33,10 +33,13 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+      - name: Prepare WebView2 runtime
+        run: ./scripts/ensure-webview2.ps1
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          cache-on-failure: true
       - run: npm run build:desktop
       - run: cargo fmt --manifest-path src-tauri/Cargo.toml --check
       - run: npm run test:rust
