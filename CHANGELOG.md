@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-10-12
+
+- Windows x64 desktop app with installer, installation-free ZIP and SHA-256 checksums.
+- Separate Overview, Services, Calendar and Reports pages, shared by web and desktop.
+- Inclusive date-range reports by actual payment date or scheduled due date, monthly totals and averages, project/category filters, and paginated details.
+- Period and monthly-total CSV exports with original currencies and explicit partial-conversion flags.
+- Existing JSON/local ledger compatibility; no schema migration or automatic data replacement.
+- Sandboxed desktop renderer, packaged custom protocol, restricted navigation/links and hardened Electron fuses.
+- Five-language documentation, expanded web/report tests, Windows app and packaged-executable checks in CI.
+
 ## 0.1.0 — 2026-10-12
 
 - First public version of Billing Memo, a browser-local developer expense notebook.

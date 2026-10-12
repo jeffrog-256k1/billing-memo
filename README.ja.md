@@ -8,6 +8,16 @@
 
 ![架空の金額を使った費用回路アニメーション](assets/cost-circuit.gif)
 
+## Windows アプリ · v0.2.0
+
+[Windows x64 インストーラー・ZIP をダウンロード](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [デスクトップガイド](docs/DESKTOP.md)
+
+Web・デスクトップ版ともに**ダッシュボード、サービス管理、支払い予定、期間分析**に分かれています。開始日と終了日（両端を含む）で合計、月別金額、月平均を確認し、プロジェクトや分類で絞り込めます。**実際の支払い**は記録した支払日で、**予定請求**は予定日で支払済み記録と未払い見積もりを集計します。明細・月別合計を CSV 出力できます。為替レート未入力時は部分合計と表示します。最大 120 暦月で、平均には空の月や一部の日付のみの月も含まれます。
+
+Windows 10/11 x64 用。EXE でインストールするか、ZIP 全体を展開して Billing Memo.exe を起動します。オフラインで動作し、Web とアプリの台帳は別々です。JSON バックアップ・復元で移行できます。どちらも %APPDATA%/Billing Memo に保存し、ZIP はインストール不要ですが USB 内に台帳を保存する方式ではありません。未署名のため Windows の発行元・SmartScreen 警告が表示される場合があります。SHA-256 を添付しています。
+
+![架空データによる期間・月別レポート](assets/period-report.png)
+
 ## できること
 
 - サービス名、請求先リンク、プロジェクト、分類、メモをまとめます。クイック追加は名前とリンクのみ入力し、料金を仮定しません。
@@ -61,10 +71,11 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:browser
+npm run test:reports
 npm run format:check
 ```
 
-ビルド・ブラウザーテスト後、`npm run render:assets` で README 画像を再生成できます。テストは隔離した架空データを使用。実行時パッケージ依存はなく、Vite・TypeScript・Playwright・gifenc は開発用です。
+ビルド・ブラウザーテスト後、`npm run render:assets` で README 画像を再生成できます。テストは隔離した架空データを使用。Web 版には実行時パッケージ依存がなく、デスクトップ版は Electron を含みます。Vite・TypeScript・Playwright・gifenc は開発用です。
 
 [貢献](CONTRIBUTING.md) · [セキュリティ](SECURITY.md) · [依存関係](THIRD_PARTY_NOTICES.md)
 

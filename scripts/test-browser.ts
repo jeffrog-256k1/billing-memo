@@ -25,13 +25,15 @@ try {
     if (msg.type() === 'error') errors.push(msg.text());
   });
   await page.goto(base);
+  await page.locator('.page-nav').waitFor();
+  await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
+  await page.screenshot({ path: 'test-results/overview.png', fullPage: false });
+  await page.goto(base + '#/calendar');
   await page.locator('.bill-row').first().waitFor();
   assert.equal(await page.locator('.bill-row').count(), 8);
   assert.equal(await page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY), null);
   assert.match(await page.locator('.stat-value').first().innerText(), /187\.25/);
   passed.push('Fictional demo, exact monthly total, no automatic local ledger write');
-  await page.screenshot({ path: 'test-results/desktop.png', fullPage: true });
-  await page.screenshot({ path: 'test-results/overview.png', fullPage: false });
   for (const lang of ['en', 'ko', 'zh-CN', 'ja', 'es']) {
     await page.selectOption('#language', lang);
     assert.equal(await page.locator('html').getAttribute('lang'), lang);
@@ -41,8 +43,13 @@ try {
       true,
       `mobile ${lang}`,
     );
-    if (lang === 'ko')
+    if (lang === 'ko') {
+      await page.click('a[href="#/overview"]');
+      await page.locator('.hero').waitFor();
       await page.screenshot({ path: 'test-results/mobile-ko.png', fullPage: true });
+      await page.click('a[href="#/calendar"]');
+      await page.locator('.aside').waitFor();
+    }
   }
   await page.selectOption('#language', 'en');
   await page.setViewportSize({ width: 1440, height: 1100 });

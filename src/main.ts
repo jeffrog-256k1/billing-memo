@@ -1,5 +1,7 @@
 import './style.css';
 import './layout.css';
+import './pages.css';
+import { mountReports, newReportState } from './reports-ui.ts';
 import {
   amountInput,
   billsFor,
@@ -41,6 +43,19 @@ const e = (v: unknown) =>
     /[&<>"']/g,
     (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
   );
+const routes = ['overview', 'services', 'calendar', 'reports'] as const;
+type Route = (typeof routes)[number];
+const routeKeys: Record<Route, Key> = {
+  overview: 'overview',
+  services: 'servicePage',
+  calendar: 'calendarPage',
+  reports: 'reports',
+};
+const readRoute = (): Route =>
+  routes.includes(location.hash.slice(2) as Route) ? (location.hash.slice(2) as Route) : 'overview';
+let route = readRoute();
+const reportState = newReportState();
+const desktop = location.protocol === 'billing-memo:';
 let lang: Language = 'en';
 let month = today().slice(0, 7),
   selectedDay = '',
@@ -149,18 +164,19 @@ function stat(key: Key, result: ReturnType<typeof totals>, hint: Key) {
   return `<div class="stat"><p class="micro">${e(t(key))}</p><div class="stat-value">${result.missing.length ? '≈ ' : ''}${e(m(result.total))}</div><p class="hint">${e(t(result.missing.length ? 'partial' : hint))}</p></div>`;
 }
 function render() {
+  view = route === 'services' ? 'services' : 'bills';
   document.documentElement.lang = lang;
   const ledger = data(),
     bills = billsFor(ledger, month),
     sum = totals(bills, ledger);
   app.innerHTML = `
-    <a class="skip" href="#ledger">${e(t('skip'))}</a>
-    <header class="topbar"><a class="brand" href="./"><img src="./favicon.svg" alt=""/>billing memo<span>BM / 001</span></a><div class="top-tools"><span class="local-badge"><i class="dot"></i>${e(t(demo ? 'demo' : 'local'))}</span><button class="quiet" id="motion" aria-pressed="${paused}" title="${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}">${paused ? '▷' : 'Ⅱ'}<span class="sr-only">${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}</span></button><label class="sr-only" for="language">Language</label><select id="language"><option value="en">EN · English</option><option value="ko">KO · 한국어</option><option value="zh-CN">ZH · 简体中文</option><option value="ja">JA · 日本語</option><option value="es">ES · Español</option></select></div></header>
-    <main class="shell"><section class="hero"><div><p class="eyebrow">${e(t('tagline'))}</p><h1>${e(t('heroA'))}<br/>${e(t('heroB'))}</h1><p class="intro">${e(t('intro'))}</p></div><div class="hero-figure"><canvas id="circuit" aria-hidden="true"></canvas></div></section>
-    <section class="mode-bar"><div><p class="mode-label">${demo ? '◌' : '●'} ${e(t(demo ? 'demo' : 'local'))}</p><p class="hint">${e(t(demo ? 'demoHint' : 'backupHint'))}</p></div><button id="switch-mode" class="accent">${e(t(demo ? 'workspace' : 'viewDemo'))} ↗</button></section>
+    <a class="skip" href="#page-content">${e(t('skip'))}</a>
+    <header class="topbar"><a class="brand" href="#/overview"><img src="./favicon.svg" alt=""/>billing memo<span>BM / 001</span></a><div class="top-tools"><span class="local-badge"><i class="dot"></i>${e(t(demo ? 'demo' : desktop ? 'desktopLocal' : 'local'))}</span><button class="quiet" id="motion" aria-pressed="${paused}" title="${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}">${paused ? '▷' : 'Ⅱ'}<span class="sr-only">${e(t(paused ? 'resumeMotion' : 'pauseMotion'))}</span></button><label class="sr-only" for="language">Language</label><select id="language"><option value="en">EN · English</option><option value="ko">KO · 한국어</option><option value="zh-CN">ZH · 简体中文</option><option value="ja">JA · 日本語</option><option value="es">ES · Español</option></select></div></header>
+    <main class="shell"><nav class="page-nav" aria-label="${e(t('navigation'))}">${routes.map((r, i) => `<a href="#/${r}" ${route === r ? 'aria-current="page"' : ''}><span>0${i + 1} /</span>${e(t(routeKeys[r]))}</a>`).join('')}</nav><div id="page-content" tabindex="-1"></div><section class="hero" ${route !== 'overview' ? 'hidden' : ''}><div><p class="eyebrow">${e(t('tagline'))}</p><h1>${e(t('heroA'))}<br/>${e(t('heroB'))}</h1><p class="intro">${e(t('intro'))}</p></div><div class="hero-figure"><canvas id="circuit" aria-hidden="true"></canvas></div></section>
+    ${route === 'services' || route === 'calendar' ? `<header class="compact-heading"><p class="eyebrow">BILLING MEMO / ${route.toUpperCase()}</p><h1>${e(t(routeKeys[route]))}</h1></header>` : ''}<section class="mode-bar"><div><p class="mode-label">${demo ? '◌' : '●'} ${e(t(demo ? 'demo' : desktop ? 'desktopLocal' : 'local'))}</p><p class="hint">${e(t(demo ? 'demoHint' : desktop ? 'desktopHint' : 'backupHint'))}</p></div><button id="switch-mode" class="accent">${e(t(demo ? 'workspace' : 'viewDemo'))} ↗</button></section>
     ${storageIssue ? `<div class="storage-error" role="alert">${e(t(storageIssue))}${corrupt ? ` <button id="raw-backup">${e(t('rawBackup'))}</button>` : ''}</div>` : ''}
-    <div class="overview-head"><div class="month-picker"><button id="prev-month" aria-label="${e(t('previous'))}" ${month === '2000-01' ? 'disabled' : ''}>←</button><label class="sr-only" for="month">${e(t('month'))}</label><input id="month" type="month" value="${month}" min="2000-01" max="2199-12"/><button id="next-month" aria-label="${e(t('next'))}" ${month === '2199-12' ? 'disabled' : ''}>→</button></div><div class="page-actions"><button id="preferences">${e(t('settings'))}</button><button id="backup">↓ ${e(t('export'))}</button><button id="restore">↑ ${e(t('import'))}</button><button class="primary" id="add">+ ${e(t('add'))}</button></div></div>
-    <section class="stats" aria-label="${e(t('monthTotal'))}">${stat('monthTotal', sum, 'totalHint')}${stat(
+    <div class="overview-head"><div class="month-picker" ${route === 'reports' ? 'hidden' : ''}><button id="prev-month" aria-label="${e(t('previous'))}" ${month === '2000-01' ? 'disabled' : ''}>←</button><label class="sr-only" for="month">${e(t('month'))}</label><input id="month" type="month" value="${month}" min="2000-01" max="2199-12"/><button id="next-month" aria-label="${e(t('next'))}" ${month === '2199-12' ? 'disabled' : ''}>→</button></div><div class="page-actions"><button id="preferences">${e(t('settings'))}</button><button id="backup">↓ ${e(t('export'))}</button><button id="restore">↑ ${e(t('import'))}</button><button class="primary" id="add">+ ${e(t('add'))}</button></div></div>
+    <div ${route === 'reports' || route === 'services' ? 'hidden' : ''}><section class="stats" aria-label="${e(t('monthTotal'))}">${stat('monthTotal', sum, 'totalHint')}${stat(
       'paid',
       totals(
         bills.filter((b) => b.paidAt),
@@ -181,8 +197,8 @@ function render() {
       .join(
         '',
       )}${Object.keys(sum.byCurrency).some((c) => c !== ledger.base) ? `<span>${e(t('converted'))}</span>` : ''}</div>
-    <div class="workspace-grid"><section id="ledger" tabindex="-1"><header class="panel-head"><h2><span class="section-number">01 /</span>${e(t('services'))}</h2><div class="tabs"><button data-view="bills" aria-pressed="${view === 'bills'}">${e(t('monthBills'))}</button><button data-view="services" aria-pressed="${view === 'services'}">${e(t('allServices'))}</button></div></header><div class="filters"><label class="sr-only" for="search">${e(t('search'))}</label><input type="search" id="search" value="${e(search)}" placeholder="${e(t('search'))}"/><label class="sr-only" for="category">${e(t('category'))}</label><select id="category"><option value="">${e(t('allCategories'))}</option>${options(categories, category, true)}</select><label class="sr-only" for="project">${e(t('project'))}</label><select id="project"><option value="">${e(t('allProjects'))}</option>${options([...new Set([...ledger.services, ...bills].map((s) => s.project).filter(Boolean))].sort(), project)}</select></div><div id="bill-list"></div></section>
-    <aside class="aside"><section><header class="panel-head"><h2><span class="section-number">02 /</span>${e(t('calendar'))}</h2></header><div class="calendar-head"><span>${e(monthText(month))}</span><span>↘ ${String(bills.length).padStart(2, '0')}</span></div><div id="calendar-grid" class="calendar-grid"></div><p class="calendar-foot">${e(t('dueHint'))}</p><button class="quiet" id="clear-day" ${!selectedDay ? 'hidden' : ''}>${e(t('clearDay'))} ×</button><div class="page-actions"><button id="csv">↓ ${e(t('exportCsv'))}</button><button id="ics">↓ ${e(t('exportIcs'))}</button></div></section>
+    </div><div class="workspace-grid ${route === 'services' ? 'services-grid' : ''}" ${route !== 'services' && route !== 'calendar' ? 'hidden' : ''}><section id="ledger" tabindex="-1"><header class="panel-head"><h2><span class="section-number">01 /</span>${e(t(route === 'services' ? 'allServices' : 'monthBills'))}</h2></header><div class="filters"><label class="sr-only" for="search">${e(t('search'))}</label><input type="search" id="search" value="${e(search)}" placeholder="${e(t('search'))}"/><label class="sr-only" for="category">${e(t('category'))}</label><select id="category"><option value="">${e(t('allCategories'))}</option>${options(categories, category, true)}</select><label class="sr-only" for="project">${e(t('project'))}</label><select id="project"><option value="">${e(t('allProjects'))}</option>${options([...new Set([...ledger.services, ...bills].map((s) => s.project).filter(Boolean))].sort(), project)}</select></div><div id="bill-list"></div></section>
+    <aside class="aside" ${route === 'services' ? 'hidden' : ''}><section><header class="panel-head"><h2><span class="section-number">02 /</span>${e(t('calendar'))}</h2></header><div class="calendar-head"><span>${e(monthText(month))}</span><span>↘ ${String(bills.length).padStart(2, '0')}</span></div><div id="calendar-grid" class="calendar-grid"></div><p class="calendar-foot">${e(t('dueHint'))}</p><button class="quiet" id="clear-day" ${!selectedDay ? 'hidden' : ''}>${e(t('clearDay'))} ×</button><div class="page-actions"><button id="csv">↓ ${e(t('exportCsv'))}</button><button id="ics">↓ ${e(t('exportIcs'))}</button></div></section>
     <section><div class="budget-box"><div class="budget-head"><h3>${e(t('budget'))}</h3><button class="quiet" data-action="preferences" aria-label="${e(t('settings'))}">↗</button></div>${ledger.budget ? `<div class="budget-value">${e(m(ledger.budget))}</div><progress class="budget-meter ${sum.total > ledger.budget ? 'over' : ''}" max="${ledger.budget}" value="${Math.min(sum.total, ledger.budget)}" aria-label="${e(t('budget'))}"></progress><p class="hint">${sum.missing.length ? e(t('partial')) : e(t(sum.total > ledger.budget ? 'budgetOver' : 'budgetLeft')) + ' · ' + e(m(Math.abs(ledger.budget - sum.total)))}</p>` : `<p class="hint">${e(t('budgetNone'))}</p><button class="quiet" data-action="preferences">+ ${e(t('budget'))}</button>`}</div><div class="distribution"><h3>${e(t('breakdown'))}</h3>${categories
       .map((cat) => {
         const value = totals(
@@ -196,9 +212,9 @@ function render() {
       .join(
         '',
       )}${sum.missing.length ? `<p class="hint">${e(t('partial'))}</p>` : ''}</div></section></aside></div>
-    <section class="outlook"><header><h2><span class="section-number">03 /</span>${e(t('forecast'))}</h2><span class="count">${ledger.services.filter((s) => !s.paused).length} ${e(t('active'))}</span></header><div class="bars" id="forecast"></div><p class="hint">${e(t('forecastHint'))}</p></section>
-    <p class="storage-note">${e(t('backupHint'))}<br/>${e(t('secretsHint'))}</p>
-    <footer class="footer"><span>+ BILLING MEMO / ${e(t('sheet'))}</span><div class="footer-links"><a href="https://github.com/jeffrog-256k1/billing-memo" target="_blank" rel="noopener noreferrer">${e(t('source'))} ↗</a><a href="https://github.com/jeffrog-256k1/billing-memo/blob/main/${lang === 'en' ? 'README.md' : `README.${lang}.md`}" target="_blank" rel="noopener noreferrer">${e(t('docs'))} ↗</a><span>v0.1.0 / MIT</span></div></footer></main><div id="toast" class="toast" role="status" aria-live="polite"></div><input type="file" id="import-file" accept=".json,application/json"/><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
+    <section class="outlook" ${route !== 'overview' ? 'hidden' : ''}><header><h2><span class="section-number">03 /</span>${e(t('forecast'))}</h2><span class="count">${ledger.services.filter((s) => !s.paused).length} ${e(t('active'))}</span></header><div class="bars" id="forecast"></div><p class="hint">${e(t('forecastHint'))}</p></section>
+    <section id="reports-root" ${route !== 'reports' ? 'hidden' : ''}></section><p class="storage-note">${e(t(desktop ? 'desktopHint' : 'backupHint'))}<br/>${e(t('secretsHint'))}</p>
+    <footer class="footer"><span>+ BILLING MEMO / ${e(t('sheet'))}</span><div class="footer-links"><a href="https://github.com/jeffrog-256k1/billing-memo" target="_blank" rel="noopener noreferrer">${e(t('source'))} ↗</a><a href="https://github.com/jeffrog-256k1/billing-memo/blob/main/${lang === 'en' ? 'README.md' : `README.${lang}.md`}" target="_blank" rel="noopener noreferrer">${e(t('docs'))} ↗</a>${desktop ? '' : `<a href="https://github.com/jeffrog-256k1/billing-memo/releases/latest" target="_blank" rel="noopener noreferrer">${e(t('desktopDownload'))} ↓</a>`}<span>v0.2.0 / MIT</span></div></footer></main><div id="toast" class="toast" role="status" aria-live="polite"></div><input type="file" id="import-file" accept=".json,application/json"/><dialog id="dialog" aria-labelledby="dialog-title"></dialog>`;
   (document.querySelector('#language') as HTMLSelectElement).value = lang;
   renderList();
   renderCalendar();
@@ -207,8 +223,10 @@ function render() {
     document.querySelector('#circuit')!,
     ledger.services.filter((s) => !s.paused).map((s) => s.name),
     m(sum.total),
-    paused,
+    paused || route !== 'overview',
   );
+  if (route === 'reports')
+    mountReports(document.querySelector('#reports-root')!, ledger, lang, reportState, download);
   wire();
 }
 function renderList() {
@@ -284,6 +302,10 @@ function goMonth(value: string) {
   }
 }
 function wire() {
+  document.querySelector('.skip')!.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    document.querySelector<HTMLElement>('#page-content')!.focus();
+  });
   const on = (id: string, fn: () => void) =>
     document.getElementById(id)?.addEventListener('click', fn);
   on('switch-mode', () => {
@@ -380,7 +402,10 @@ app.addEventListener('click', (ev) => {
     view = 'bills';
     render();
   }
-  if (a.month) goMonth(a.month);
+  if (a.month) {
+    goMonth(a.month);
+    location.hash = '/calendar';
+  }
   if (a.action === 'preferences') openPreferences();
   if (a.action === 'close') document.querySelector<HTMLDialogElement>('#dialog')!.close();
   if (a.action === 'undo' && undoLedger && undoMode === demo) {
@@ -611,5 +636,14 @@ window.addEventListener('storage', (ev) => {
 matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change', (ev) => {
   paused = ev.matches;
   render();
+});
+window.addEventListener('hashchange', () => {
+  if (location.hash.startsWith('#/')) {
+    route = readRoute();
+    selectedDay = '';
+    render();
+    document.querySelector<HTMLElement>('#page-content')!.focus();
+    window.scrollTo(0, 0);
+  }
 });
 render();

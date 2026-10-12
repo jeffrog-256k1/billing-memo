@@ -8,6 +8,16 @@
 
 ![Circuito animado de gastos con importes ficticios](assets/cost-circuit.gif)
 
+## Aplicación Windows · v0.2.0
+
+[Descargar instalador o ZIP para Windows x64](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Guía de escritorio](docs/DESKTOP.md)
+
+Web y escritorio comparten **Resumen, Servicios, Calendario e Informes**. Selecciona fechas inclusivas para ver el total, importes mensuales y promedio, con filtros de proyecto y categoría. **Pagos reales** usa la fecha de pago registrada; **Facturas previstas** usa el vencimiento y combina pagos con estimaciones pendientes. Exporta detalles y totales mensuales a CSV. Los tipos de cambio ausentes producen totales parciales. Cada consulta admite 120 meses naturales; el promedio incluye meses vacíos y parciales.
+
+Para Windows 10/11 x64: instala el EXE o extrae todo el ZIP y ejecuta Billing Memo.exe. Funciona sin conexión. Web y escritorio guardan registros separados; usa JSON para transferirlos. Ambos paquetes guardan en %APPDATA%/Billing Memo; el ZIP no requiere instalación, pero no almacena los datos junto al ejecutable USB. La versión no está firmada y Windows puede mostrar una advertencia del editor o SmartScreen. Incluye sumas SHA-256.
+
+![Informe mensual y del período con datos ficticios](assets/period-report.png)
+
 ## Funciones
 
 - Reúne nombres, enlaces de facturación, proyectos, categorías y notas. Los accesos rápidos rellenan nombres y enlaces, nunca precios supuestos.
@@ -61,10 +71,11 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:browser
+npm run test:reports
 npm run format:check
 ```
 
-Después de compilar y probar el navegador, `npm run render:assets` regenera las imágenes del README. Las pruebas usan datos ficticios aislados. La app no tiene dependencias de paquetes en ejecución; Vite, TypeScript, Playwright y gifenc son herramientas de desarrollo.
+Después de compilar y probar el navegador, `npm run render:assets` regenera las imágenes del README. Las pruebas usan datos ficticios aislados. La versión web no tiene dependencias de paquetes en ejecución; el escritorio incluye Electron. Vite, TypeScript, Playwright y gifenc son herramientas de desarrollo.
 
 [Contribuir](CONTRIBUTING.md) · [Seguridad](SECURITY.md) · [Dependencias](THIRD_PARTY_NOTICES.md)
 

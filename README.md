@@ -8,6 +8,16 @@
 
 ![Animated cost circuit with fictional amounts](assets/cost-circuit.gif)
 
+## Windows app · v0.2.0
+
+[Download the Windows x64 installer or ZIP](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [Desktop guide](docs/DESKTOP.md)
+
+Overview, Services, Calendar and Reports are now separate pages in both apps. **Reports** accepts inclusive start/end dates, shows the period total, monthly amounts and average, and filters by project or category. Choose **Actual payments** for recorded spending by payment date, or **Scheduled bills** for paid snapshots plus unpaid forecasts by due date. Export all matching details and monthly totals as CSV. Missing rates produce partial totals. Each query supports 120 calendar months; averages include empty and partial months.
+
+Windows 10/11 x64: install the EXE, or extract the entire ZIP and run Billing Memo.exe. The app runs offline. Web and desktop ledgers are separate; transfer them with JSON backup/restore. Both desktop packages save under %APPDATA%/Billing Memo. The ZIP is installation-free, not USB-contained storage. This release is unsigned; Windows may display an unknown-publisher or SmartScreen warning. SHA-256 checksums are included.
+
+![Period totals with fictional data](assets/period-report.png)
+
 ## What you can do
 
 - Keep service names, billing links, project labels, categories and memos together. Provider shortcuts fill names and links, never assumed prices.
@@ -31,7 +41,7 @@
 
 Amounts are stored as integer minor units (KRW/JPY: zero decimals, others: two). A date such as January 31 becomes February's last day, then returns to March 31. Leap-day annual plans use February 28 in ordinary years. Annual charges count **in full in their billing month**; only the separate monthly equivalent divides them by 12. One-time charges do not enter the recurring equivalent.
 
-Forecast = recorded actual amounts + unpaid estimates. Payments belong to their scheduled billing month; their actual payment date is stored separately. This is a planning notebook, not cash-basis accounting. Paid snapshots survive service edits, pauses and removal. Editing a service changes its unpaid estimates, including earlier months. Each service has one invoice per month; add separate one-time entries for individual extra transactions.
+Forecast = recorded actual amounts + unpaid estimates. Payments belong to their scheduled billing month; their actual payment date is stored separately. Overview and Calendar are planning views; Reports can instead group payments by actual payment date. Paid snapshots survive service edits, pauses and removal. Editing a service changes its unpaid estimates, including earlier months. Each service has one invoice per month; add separate one-time entries for individual extra transactions.
 
 Different currencies remain separately totaled. A missing conversion rate is marked as a **partial total**, never silently treated as 1:1. Enter `1 source unit = N display units`; converted estimates are rounded per item to the display currency's minor unit. Changing display currency resets rates and budget. Rates are manual and have no automatic refresh. Future usage, taxes and provider price changes are not predicted; enter the full amounts you want to track.
 
@@ -61,10 +71,11 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:browser
+npm run test:reports
 npm run format:check
 ```
 
-`npm run render:assets` regenerates README media after building and browser tests. Browser tests use isolated fictional data. The published app has no runtime package dependencies; Vite/TypeScript, Playwright and gifenc are development tools.
+`npm run render:assets` regenerates README media after building and browser tests. Browser tests use isolated fictional data. The published web app has no runtime package dependencies; the desktop edition bundles Electron; Vite/TypeScript, Playwright and gifenc are development tools.
 
 [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Dependencies](THIRD_PARTY_NOTICES.md)
 

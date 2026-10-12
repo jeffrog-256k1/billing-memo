@@ -1,6 +1,8 @@
+import { reportCopy } from './report-copy.ts';
 export const languages = ['en', 'ko', 'zh-CN', 'ja', 'es'] as const;
 export type Language = (typeof languages)[number];
 const rows = {
+  ...reportCopy,
   tagline: [
     'A ledger for your developer stack',
     '개발 도구를 위한 결제 장부',

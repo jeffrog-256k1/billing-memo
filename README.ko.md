@@ -8,6 +8,16 @@
 
 ![가상 금액을 사용한 결제 회로 애니메이션](assets/cost-circuit.gif)
 
+## Windows 앱 · v0.2.0
+
+[Windows x64 설치 파일·ZIP 다운로드](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [데스크톱 안내](docs/DESKTOP.md)
+
+웹과 데스크톱 모두 **대시보드 / 서비스 관리 / 결제 일정 / 기간 분석** 페이지로 나뉩니다. 기간 분석에서 시작일~종료일(양 끝 날짜 포함)을 지정하면 기간 총액, 월별 금액과 평균을 확인하고 프로젝트·분류로 필터링할 수 있습니다. **실제 결제일 기준**은 완료 기록의 납부일로, **청구 예정일 기준**은 완료 기록과 미납 예상액을 예정일로 집계합니다. 상세 내역과 월별 합계를 CSV로 내보낼 수 있습니다. 환율 누락은 부분 합계로 표시합니다. 최대 120개월을 조회하며 월평균에는 빈 달과 일부 날짜만 포함된 달도 들어갑니다.
+
+Windows 10/11 x64용입니다. EXE로 설치하거나 ZIP 전체를 풀고 Billing Memo.exe를 실행하세요. 오프라인 실행이 가능하며 웹·앱 장부는 별도이므로 JSON 백업·복원으로 옮깁니다. 설치판·ZIP 모두 %APPDATA%/Billing Memo에 저장합니다. ZIP은 무설치 배포이며 USB 폴더에 장부까지 저장하는 방식은 아닙니다. 코드 서명은 없어 Windows 게시자/SmartScreen 경고가 나타날 수 있습니다. 릴리스에 SHA-256 체크섬을 제공합니다.
+
+![가상 데이터로 본 기간별·월별 지출](assets/period-report.png)
+
 ## 주요 기능
 
 - 서비스 이름, 결제 링크, 프로젝트, 분류, 메모를 함께 보관합니다. 빠른 추가는 이름과 링크만 채우며 요금을 임의로 가정하지 않습니다.
@@ -61,10 +71,11 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:browser
+npm run test:reports
 npm run format:check
 ```
 
-빌드·브라우저 테스트 후 `npm run render:assets`로 README 이미지를 다시 생성할 수 있습니다. 테스트는 격리된 가상 데이터를 사용합니다. 앱 실행 시 외부 패키지 의존성은 없으며 Vite·TypeScript·Playwright·gifenc는 개발 도구입니다.
+빌드·브라우저 테스트 후 `npm run render:assets`로 README 이미지를 다시 생성할 수 있습니다. 테스트는 격리된 가상 데이터를 사용합니다. 웹 앱 실행 시 외부 패키지 의존성은 없으며 데스크톱은 Electron 런타임을 포함합니다. Vite·TypeScript·Playwright·gifenc는 개발 도구입니다.
 
 [기여](CONTRIBUTING.md) · [보안](SECURITY.md) · [의존성](THIRD_PARTY_NOTICES.md)
 

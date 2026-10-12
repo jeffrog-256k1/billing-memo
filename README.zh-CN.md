@@ -8,6 +8,16 @@
 
 ![使用虚构金额的费用电路动画](assets/cost-circuit.gif)
 
+## Windows 应用 · v0.2.0
+
+[下载 Windows x64 安装程序或 ZIP](https://github.com/jeffrog-256k1/billing-memo/releases/latest) · [桌面指南](docs/DESKTOP.md)
+
+网页和桌面版均分为**概览、服务管理、付款日历、期间分析**。选择开始与结束日期（包含两端）即可查看总额、每月金额、月均值，并按项目或类别筛选。**实际付款**按付款日统计；**计划账单**按到期日统计已付记录及未付估算。可导出期间明细与每月汇总 CSV。缺失汇率标为部分合计。最多查询 120 个自然月，平均值包含空月份和部分月份。
+
+适用于 Windows 10/11 x64：安装 EXE，或完整解压 ZIP 后运行 Billing Memo.exe。支持离线使用；网页与桌面账本分别保存，通过 JSON 备份/恢复迁移。两种桌面包都在 %APPDATA%/Billing Memo 保存数据，ZIP 免安装但不是将数据放在 USB 文件夹。此版本未签名，Windows 可能显示未知发布者或 SmartScreen 提示。提供 SHA-256 校验值。
+
+![虚构数据的期间与月度报告](assets/period-report.png)
+
 ## 功能
 
 - 集中保存服务名称、账单链接、项目、分类和备注。快捷添加只填写名称和链接，不预设服务价格。
@@ -61,10 +71,11 @@ npm test
 npm run build
 npx playwright install chromium
 npm run test:browser
+npm run test:reports
 npm run format:check
 ```
 
-构建和浏览器测试后，运行 `npm run render:assets` 重新生成 README 图片。测试使用隔离的虚构数据。应用没有运行时包依赖；Vite、TypeScript、Playwright、gifenc 仅用于开发。
+构建和浏览器测试后，运行 `npm run render:assets` 重新生成 README 图片。测试使用隔离的虚构数据。网页应用没有运行时包依赖，桌面版包含 Electron；Vite、TypeScript、Playwright、gifenc 仅用于开发。
 
 [贡献](CONTRIBUTING.md) · [安全](SECURITY.md) · [依赖](THIRD_PARTY_NOTICES.md)
 

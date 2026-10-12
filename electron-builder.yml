@@ -1,0 +1,35 @@
+appId: app.leejungjae.billingmemo
+productName: Billing Memo
+copyright: Copyright © 2026 Jungjae Lee
+asar: true
+directories:
+  output: release
+files:
+  - dist/**
+  - desktop/main.mjs
+  - desktop/security.mjs
+  - desktop/icon.png
+  - package.json
+  - LICENSE
+  - THIRD_PARTY_NOTICES.md
+afterPack: desktop/after-pack.mjs
+npmRebuild: false
+win:
+  icon: desktop/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+    - target: zip
+      arch: [x64]
+nsis:
+  artifactName: Billing-Memo-${version}-windows-${arch}-setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
+  deleteAppDataOnUninstall: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  runAfterFinish: false
+artifactName: Billing-Memo-${version}-windows-${arch}.${ext}
+publish: null

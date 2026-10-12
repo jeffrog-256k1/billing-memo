@@ -268,7 +268,7 @@ export function settle(ledger: Ledger, bill: Bill, actual: number, paidAt = toda
   };
   return validateLedger(next);
 }
-function csvCell(value: unknown) {
+export function csvCell(value: unknown) {
   let text = String(value);
   if (/^[\s]*[=+\-@]/.test(text)) text = "'" + text;
   return `"${text.replaceAll('"', '""')}"`;
